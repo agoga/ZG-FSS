@@ -7,9 +7,9 @@ from scipy import optimize
 from scipy import special
 from scipy.stats import chi2
 import gc
-import pygmo as pg
+import helpers as h
 
-from . import helpers as h
+import pygmo as pg
 
 def openfile(filename):
     f = open(filename, "r")
@@ -66,7 +66,7 @@ m_I = 1
 window_width = 1.0 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
 window_center = 0.74
-
+filename  = h.datafilename('offdiagE6W10.txt')
 input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])

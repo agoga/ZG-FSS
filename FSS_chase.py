@@ -4,10 +4,11 @@ Created on Sun Mar  7 19:20:32 2021
 
 @author: chase
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+import helpers as h
 
 
 
@@ -185,13 +186,8 @@ raw_data=[]
 
 def compute_c_nu():
 
-    #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
-    script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in
-    data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
-    dataName='scaling data\offdiagE6W10.txt'
-    outputfile = os.path.join(data_dir, dataName)
-    print(outputfile)
     
+    outputfile = h.datafilename('offdiagE6W10.txt')
     output=openfile(outputfile)
     
     
