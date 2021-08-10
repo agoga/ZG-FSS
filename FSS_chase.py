@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import helpers as h
-
+import logging as log
+#fmt="%(funcName)s():%(lineno)i: %(message)s %(levelname)s"
+#log.basicConfig(level=args.log_level, format=fmt)
 
 
 def openfile(filename):
@@ -26,6 +28,7 @@ def openfile(filename):
 
 
 def checkfit(xdata,ydata):
+    log.info('checkfit')
     '''
     inputs: 
     only valid for nu>0
@@ -185,7 +188,8 @@ raw_data=[]
 
 
 def compute_c_nu():
-
+    log.info("%(funcName)s")
+    print('c-nu')
     
     outputfile = h.datafilename('offdiagE6W10.txt')
     output=openfile(outputfile)
@@ -247,6 +251,7 @@ def compute_c_nu():
     plt.xlabel('c')
     plt.ylabel(r'$\lambda_M$/M')
     plt.legend(loc=2)
+    plt.savefig(h.outputfilename())
     plt.show()
     
     
@@ -294,6 +299,7 @@ def compute_c_nu():
     plt.plot(nu_range,loss_fcn)
     plt.ylabel('loss function')
     plt.xlabel(r'$\nu$')
+    plt.savefig(h.outputfilename())
     plt.show()
     
     #best_c=.306
@@ -314,6 +320,7 @@ def compute_c_nu():
     plt.ylabel(r'$\Lambda$')
     plt.yscale('log')
     plt.xscale('log')
+    plt.savefig(h.outputfilename())
     plt.show()
     #plt.ylabel(r'$\Lambda/L$')
     
@@ -325,7 +332,7 @@ def compute_W_nu():
     output=openfile(outputfile)
     
     
-    
+###ADAM###    
     y_data=[]
     L_list=[]
     c_list=[]
@@ -361,8 +368,8 @@ def compute_W_nu():
                     y_data[i].append(Lambda/sim[0])
                     g_data[i].append((4/np.cosh((2*sim[0]/Lambda))+1))
         i+=1
-
-    
+n
+ ######   
     
     
     nu_range=np.linspace(.8,1.6,200)
@@ -405,12 +412,14 @@ def compute_W_nu():
             scaled_plot_x.append(((x_data[j]-best_W)/best_W)*L_list[i]**(1/best_nu))
             abs_scaled_x.append(L_list[i]/np.abs(x_data[j]-best_W)**-best_nu)
             scaled_plot_y.append(y_data[i][j])
+    
     plt.plot(abs_scaled_x,scaled_plot_y,linestyle='None',marker='^')
     #plt.xlabel(r'$tL^{1/\nu}$')
     plt.xlabel(r'$tL^{\nu}$')
     plt.ylabel('lam')
     plt.yscale('log')
     plt.xscale('log')
+    plt.savefig(h.outputfilename())
     #plt.ylabel(r'$\Lambda/L$')
     
     
@@ -513,6 +522,8 @@ def compute_W_s():
             scaled_plot_x.append(((x_data[j]-best_W)/best_W)*L_list[i]**(1/best_nu))
             abs_scaled_x.append(L_list[i]/np.abs(x_data[j]-best_W)**-best_nu)
             scaled_plot_y.append(g_data[i][j]*L_list[i]**(0/best_nu))
+
+    plt.savefig(h.outputfilename())
     plt.plot(scaled_plot_x,scaled_plot_y,linestyle='None',marker='^')
     #plt.xlabel(r'$tL^{1/\nu}$')
     plt.xlabel(r'$tL^{\nu}$')
