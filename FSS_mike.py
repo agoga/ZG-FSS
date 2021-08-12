@@ -37,8 +37,7 @@ def openfileZeke(filename):
             outputlst.append([L, W, c, g])
     return outputlst
 
-
-
+    
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
 
@@ -68,6 +67,7 @@ window_offset = 0.0  #  distance from window center to near edge of window
 window_center = 0.74
 filename  = h.datafilename('offdiagE6W10.txt')
 input = np.array(openfile(filename))
+
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
@@ -288,11 +288,12 @@ if __name__ == '__main__':
         #ax2.set_xscale('linear')
 
         ax1.set_yscale('log')
+        plt.savefig(h.outputfilename())
         #ax2.set_yscale('log')
 
 
     plotScalingFunc(Tvar, L, solution)
-
+    print('a')
     # Plot raw data
     for T in np.unique(Tvar)[::-1]:
         toPlotX = []
@@ -318,8 +319,9 @@ if __name__ == '__main__':
     ax3.set_xticklabels(list(map(int, Lrange)))
     ax3.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 
-
+    plt.savefig(h.outputfilename())
     #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
+
 
 
     #Plot heatmap
@@ -350,5 +352,5 @@ if __name__ == '__main__':
 
 
     samp.on_changed(update)
-
+    plt.savefig(h.outputfilename())
     plt.show()

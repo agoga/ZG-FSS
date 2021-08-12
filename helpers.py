@@ -2,29 +2,21 @@ import os
 from datetime import datetime
 import random
 
-outputdir='output\\'
-datadir="data\\"
-newdir=""
-count=1
-
 script_dir = os.path.dirname(__file__) 
 outputdir = os.path.join(script_dir, 'output\\')
+datadir="data\\"
+newdir=""
+ 
+count=1
 
-folder_names = filter(os.path.isdir, os.listdir(outputdir))
-
-print(len(os.listdir(outputdir)))
-
-for d in os.listdir(outputdir):
-    print(d)
-print('a'b)
-
-for name in folder_names:
-    print(name)
-[print(name) for name in folder_names if name.isnumeric()]
-
-last_number = max([int(name) for name in folder_names if name.isnumeric()])
-new_name = str(last_number + 1).zpad(4)
-newdir =   sos.mkdir(new_name)
+#TODO adam ugly
+tmpiter= os.listdir(outputdir)
+if len(tmpiter) == 0:
+    new_name=str(1)
+else:
+    last_number = max([int(name) for name in tmpiter if name.isnumeric()])
+    new_name = str(last_number + 1)
+newdir = os.mkdir(os.path.join(script_dir,outputdir+new_name))
 
 def datafilename(fn):
     #newdirectory()
@@ -41,13 +33,41 @@ def outputfilename():
     global newdir
     #curdir=newdirectory()
     now = datetime.now()
-    print(newdir)
     #print(curdir)
 
     # dd/mm/YY H:M:S
     #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
-
-    
     dt_string = now.strftime("%H_%M_%S_")+str(count)
     count += 1
-    return( os.path.join(script_dir, outputdir+dt_string))
+    return( os.path.join(script_dir,outputdir+new_name+"\\"+ dt_string))
+
+
+
+
+#
+#import os
+#import numpy as np
+##path = 'define your directory'
+#f='Flag_variable.npy'
+#try:
+#    Flag_variable = np.load('Flag_variable.npy')
+#    Flag_variable = int(Flag_variable)
+#    Flag_variable =Flag_variable+ 1
+#    np.save(f,Flag_variable)
+#except FileNotFoundError:
+    
+#    np.save(f, 1)
+#    Flag_variable=1
+    
+ 
+#os.chdir(path)
+#Newfolder= 'ID'+ str(Flag_variable)
+#os.makedirs(path+Newfolder)
+#print('Total Folder created', Flag_variable)
+
+
+#for i in range (1,11):
+#    pass
+#     os.chdir(path)
+#     Newfolder= 'ID'+ str(i)
+#     os.makedirs(path+Newfolder)

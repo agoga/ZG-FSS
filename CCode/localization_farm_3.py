@@ -27,7 +27,6 @@ def scaling_func(tup,*params):
 	psi_2 = L**alpha2*(b20+b21*w+b22*w**2)
 	return a00+psi_1+psi_2 #linear for now. 
 
-
 def makeHamiltonian2D(L,V,W):
 	#Generates the Hamiltonian (incl. site disorder) in 2D
 	H=np.zeros((L,L))
@@ -62,6 +61,7 @@ def makeTM(H,E):
 	Hlen=H.shape[0]
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
+
 def Create_Transfer_Matrix(coupling_matrix_down,W,t_low,fraction,size,E,dim):
 	
 	'''
