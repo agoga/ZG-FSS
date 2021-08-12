@@ -8,7 +8,7 @@ Created on Sun Mar  7 19:20:32 2021
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import helpers as h
+import config as cfg
 import logging as log
 #fmt="%(funcName)s():%(lineno)i: %(message)s %(levelname)s"
 #log.basicConfig(level=args.log_level, format=fmt)
@@ -45,7 +45,7 @@ def checkfit(xdata, ydata):
     for i in range(len(xdata)):
         base_curve_x = xdata[len(xdata)-i-1]
         base_curve_y = ydata[len(ydata)-i-1]
-        
+
         used_bases.append(len(xdata)-i)
         for j in range(len(xdata)):
             if j not in used_bases:
