@@ -1,2 +1,2 @@
 # ZG-FSS
-# Created Readme for Adam
+finite-size scaling
