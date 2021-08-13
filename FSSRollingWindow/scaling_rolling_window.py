@@ -5,7 +5,6 @@ from scipy import stats
 from scipy import optimize
 from scipy import special
 from scipy.stats import chi2
-import gc
 import pygmo as pg
 
 def openfile(filename):
@@ -34,9 +33,32 @@ def openfileZeke(filename):
             outputlst.append([L, W, c, g])
     return outputlst
 
+def bootVals(Lambda,L,Tvar,sigma,n):
+    output=np.array([])
+    Lambdanew=np.array([])
+    Lnew=np.array([])
+    Tvarnew=np.array([])
+    sigmanew=np.array([])
+    for i in range(0,n):
+        outputtemp=(np.random.choice(len(Lambda), int(len(Lambda)), replace=True))
+        outputtemp=np.sort(outputtemp)
+        if len(output)==0:
+            output=outputtemp
+            Lambdanew=Lambda[outputtemp]
+            Lnew=L[outputtemp]
+            Tvarnew=Tvar[outputtemp]
+            sigmanew=sigma[outputtemp]
+        else:
+            output=np.vstack([output,outputtemp])
+            Lambdanew=np.vstack([Lambdanew,Lambda[outputtemp]])
+            Lnew=np.vstack([Lnew,L[outputtemp]])
+            Tvarnew=np.vstack([Tvarnew,Tvar[outputtemp]])
+            sigmanew=np.vstack([sigmanew,sigma[outputtemp]])
+    return output,Lambdanew,Lnew,Tvarnew,sigmanew
+
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="offdiagE6W10.txt"
+filename="Data/offdiagE2W10.txt"
 minL = 8
 
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
@@ -50,6 +72,7 @@ n_R = 3
 n_I = 1
 m_R = 2
 m_I = 1
+resamplesize=5 #number of resamples
 
 
 window_width = 1.0 #width of window
@@ -79,7 +102,8 @@ c = data[:, 2]
 sigma = data[:, 4] #uncomment for MacKinnon
 # set the driving parameter
 Tvar = c
-
+#print(L)
+#print(Tvar)
 
 
 numBoot = len(Lambda)//4
@@ -89,6 +113,7 @@ if n_I > 0:
     numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
 else:
     numParams = n_R + m_R
+
 print(str(numParams) + "+3 parameters")
 
 
@@ -96,19 +121,21 @@ if numBoot==1:
     bootSize=1
 else:
     bootSize = 0.9 #fraction of data to keep
-bootResults=[]
-Lambda_restart = Lambda
-L_restart = L
-Tvar_restart = Tvar
-sigma_restart = sigma
+
+#bootstrap method  generate n sets of randints
+
+randints,bLambda,bL,bTvar,bsigma=bootVals(Lambda,L,Tvar,sigma,resamplesize) #getting new variables with prefix b to designate bootstrap resamples
 
 
 if __name__ == '__main__':
 
     class objective_function:
-
+        def __init__(self,Lval,Tvarval,Lambda):
+            self.L=Lval
+            self.Tvar=Tvarval
+            self.Lambda=Lambda
         def fitness(self, x):
-            def scalingFunc(T, L, Tc, nu, y, A, b, c):
+            def scalingFunc(T, Lval, Tc, nu, y, A, b, c):
                 t = (T - Tc) / Tc  # This is filled with values for different L
 
                 powers_of_t_chi = np.power(np.column_stack([t] * (m_R)),
@@ -117,14 +144,14 @@ if __name__ == '__main__':
                 # [t, t^2, t^3, t^4]
 
                 chi = np.dot(powers_of_t_chi, b)
-                chi_vec = np.power(chi * (L ** (1 / nu)), np.column_stack(
+                chi_vec = np.power(chi * (self.L ** (1 / nu)), np.column_stack(
                     [np.arange(0, n_R + 1)] * len(t)))  # vector containing 1, chi*L**1/nu, chi**2*L**2/nu, ...
 
                 if n_I > 0:
                     powers_of_t_psi = np.power(np.column_stack([t] * (m_I + 1)),
                                                np.arange(0, m_I + 1).transpose())  # Always has 1 in the first column
                     psi = np.dot(powers_of_t_psi, c)
-                    psi_vec = np.power(psi * (L ** y), np.column_stack([np.arange(0, n_I + 1)] * len(t)))
+                    psi_vec = np.power(psi * (self.L ** y), np.column_stack([np.arange(0, n_I + 1)] * len(t)))
 
                     A = np.insert(A, [1, int(n_R)], 1.0)  # set F01=F10=1.0
                     A = A.reshape(n_I + 1, n_R + 1)
@@ -152,9 +179,9 @@ if __name__ == '__main__':
                     A = the_rest[:int(n_R)]
                     b = the_rest[int(n_R):int(n_R + m_R)]
                     c = the_rest[int(n_R + m_R):]  # will not matter. Set m_I to 0 if n_I is 0
-                Lambda_scaled = scalingFunc(Tvar, L, Tc, nu, y, A, b, c)
-                c2 = np.sum(np.abs(Lambda - Lambda_scaled)**2)
-                dof = len(Tvar) - numParams
+                Lambda_scaled = scalingFunc(self.Tvar, self.L, Tc, nu, y, A, b, c)
+                c2 = np.sum(np.abs(self.Lambda - Lambda_scaled)**2)
+                dof = len(self.Tvar) - numParams
 
                 # c2, p = stats.chisquare(f_obs=Lambda_scaled, f_exp=Lambda, ddof=dof)
 
@@ -170,21 +197,10 @@ if __name__ == '__main__':
             bounds = np.transpose(bounds)
             return (bounds[0,:], bounds[1,:])
 
-    '''
-    Lambda = Lambda_restart
-    L = L_restart
-    Tvar = Tvar_restart
-    sigma = sigma_restart
-    
-    #bootstrap method
-    randInds = np.random.choice(len(Lambda), int(len(Lambda)*bootSize), replace=False)
-    Lambda=Lambda[randInds]
-    L = L[randInds]
-    Tvar = Tvar[randInds]
-    sigma = sigma[randInds]
-    '''
-
-    prob = pg.problem(objective_function())
+ 
+    #print(bL[0,:])
+    #print(bTvar[0,:])
+    prob = pg.problem(objective_function(L,Tvar,Lambda))
 
     #algo = pg.algorithm(pg.pso(gen=1000, eta1=3.2, eta2=2.0))
     #algo = pg.algorithm(pg.de(gen=1000, F=0.5, CR=0.9, variant=4, ftol=1e-06))
@@ -200,14 +216,47 @@ if __name__ == '__main__':
 
     #solution = pop.get_x()[pop.best_idx()]
     solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
+    print('Tc is: {:.3f}, Nu is {:.3f}'.format(solution[0],solution[1]))
+    Tcfinal=solution[0]
+    Nufinal=solution[1]
     #champs = np.array(pop.get_x())
-    champs = np.array(archi.get_champions_x())
-    Lambda = Lambda_restart
-    sigma = sigma_restart
-    L = L_restart
-    Tvar = Tvar_restart
+    #champs = np.array(archi.get_champions_x())
 
+    Nurange=np.array([])
+    Tcrange=np.array([])
+    print('Resample Vals:')
+    for i in range(0,resamplesize):
+        del prob,archi,algo
+        print('Bootstrapping {}%'.format(i/resamplesize*100))
+        prob = pg.problem(objective_function(bL[i,:],bTvar[i,:],bLambda[i,:]))
 
+        #algo = pg.algorithm(pg.pso(gen=1000, eta1=3.2, eta2=2.0))
+        #algo = pg.algorithm(pg.de(gen=1000, F=0.5, CR=0.9, variant=4, ftol=1e-06))
+        algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
+        #pop = pg.population(prob, 100)
+        #algo.set_verbosity(100)
+        archi = pg.archipelago(n=6, algo=algo,prob=prob, pop_size=100)
+        #pop = algo.evolve(pop)
+
+        archi.evolve()
+        archi.wait()
+        #print(pop)
+
+        #solution = pop.get_x()[pop.best_idx()]
+        solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
+        print('ReTc is: {}, ReNu is {}'.format(solution[0],solution[1]))
+        Tcrange=np.append(Tcrange,solution[0])
+        Nurange=np.append(Nurange,solution[1])
+
+        #champs = np.array(pop.get_x())
+        #champs = np.array(archi.get_champions_x())
+    #print(Nurange,Tcrange)
+    nu_1CI = np.percentile(Nurange, [2.5, 97.5], interpolation='lower')
+    TcCI = np.percentile(Tcrange, [2.5, 97.5], interpolation='lower')
+    print('Tc: %f [%f, %f]' % (Tcfinal, TcCI[0], TcCI[1]))
+    print('nu: %f [%f, %f]' % (Nufinal, nu_1CI[0],nu_1CI[1]))
+
+'''
 
     print("Best solution"+str(solution))
     #print("Best solution cost/pt: "+str(pop.get_f()[pop.best_idx()]/len(Lambda)))
@@ -216,10 +265,11 @@ if __name__ == '__main__':
 
     print('n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I))
 
-    Tcs = champs[:,0]
-    TcCI = np.percentile(Tcs, [2.5, 97.5], interpolation='lower')
-    nu_1s = champs[:,1]
-    nu_1CI = np.percentile(nu_1s, [2.5, 97.5], interpolation='lower')
+    #Tcs = champs[:,0]
+    #TcCI = np.percentile(Tcs, [2.5, 97.5], interpolation='lower')
+    #nu_1s = champs[:,1]
+    #print(nu_1s)
+    #nu_1CI = np.percentile(nu_1s, [2.5, 97.5], interpolation='lower')
     print('Tc: %f [%f, %f]' % (solution[0], np.min(Tcs), np.max(Tcs)))
     print('nu: %f [%f, %f]' % (solution[1], np.min(nu_1s), np.max(nu_1s)))
     print('File: '+filename)
@@ -316,3 +366,4 @@ if __name__ == '__main__':
     samp.on_changed(update)
 
     plt.show()
+'''
