@@ -59,100 +59,101 @@ raw=[]
 	size: the width of the strip or bar. Currently only square bars are supported
 	fraction: the fraction of links that are "good", AKA necking fraction
 	E: The fermi level, 0 represents the center of the band
-	'''
-class analyzedData(raw=[],win,outp):
+'''
+
+# class analyzedData(raw=[],win,outp):
 
 
-    window:[]
+#     window:[]
 
-    outputStr=''
-    day:int
-    hour:int
+#     outputStr=''
+#     day:int
+#     hour:int
 
-    #decimalYr:Time
-    label:str
-
-
-    def __init__(self, raw=None,window=None,outputPath=None):
-        if raw is not None:
-            super().__init__(copy=raw)
+#     #decimalYr:Time
+#     label:str
 
 
-        if hasattr(self,'mjd') and self.mjd is not None:
-            mjd = self.mjd
-            self.day = int(np.floor(mjd))
-            self.hour = int(str(mjd).split('.')[1])
-            self.decimalYr = Time(mjd,format='mjd')
-            self.decimalYr.format = 'decimalyear'
-        else:
-            self.mjd = None
+#     def __init__(self, raw=None,window=None,outputPath=None):
+#         if raw is not None:
+#             super().__init__(copy=raw)
 
-        self.outputPath=outputPath
-        self.window = window
 
-    def raw(self):#for 
-        return self
+#         if hasattr(self,'mjd') and self.mjd is not None:
+#             mjd = self.mjd
+#             self.day = int(np.floor(mjd))
+#             self.hour = int(str(mjd).split('.')[1])
+#             self.decimalYr = Time(mjd,format='mjd')
+#             self.decimalYr.format = 'decimalyear'
+#         else:
+#             self.mjd = None
+
+#         self.outputPath=outputPath
+#         self.window = window
+
+#     def raw(self):#for 
+#         return self
 
     
-    #if this is an average then we put it in the day's folder as day_combined_data and save it slightly diff
-    #location that the data should go to
-    def data_path(self):
-        if self.average is False:
-            return self.outputDir()+str(self.hour)+"_data"
-        else:
-            return self.outputDir()+str(self.day)+"_combined_data"
+#     #if this is an average then we put it in the day's folder as day_combined_data and save it slightly diff
+#     #location that the data should go to
+#     def data_path(self):
+#         if self.average is False:
+#             return self.outputDir()+str(self.hour)+"_data"
+#         else:
+#             return self.outputDir()+str(self.day)+"_combined_data"
 
-    #location pdf reports go to
-    def report_path(self):
-        if self.average is False:
-            return  self.outputDir()+str(self.hour)+"_"+"_report.pdf"
-        else:
-            return  self.outputDir()+str(self.day)+"_"+"_combined_report.pdf"
+#     #location pdf reports go to
+#     def report_path(self):
+#         if self.average is False:
+#             return  self.outputDir()+str(self.hour)+"_"+"_report.pdf"
+#         else:
+#             return  self.outputDir()+str(self.day)+"_"+"_combined_report.pdf"
 
-    #def label(self):
-        #return 
+#     #def label(self):
+#         #return 
 
-    def outputDir(self):
-        if self.outputPath is None:
-            return "output/"+self.lin+"/"+str(self.day)+"/"
-        else:
-            return self.outputPath+self.lin+"/"+str(self.day)+"/"
+#     def outputDir(self):
+#         if self.outputPath is None:
+#             return "output/"+self.lin+"/"+str(self.day)+"/"
+#         else:
+#             return self.outputPath+self.lin+"/"+str(self.day)+"/"
 
-    def pdfTitle(self):
-        t = ''
-#        if self.bad:
-#            t = 'bad '
-        #t += 'N
-        return t
+#     def pdfTitle(self):
+#         t = ''
+# #        if self.bad:
+# #            t = 'bad '
+#         #t += 'N
+#         return t
 
 
-#https://stackoverflow.com/questions/11373610/save-matplotlib-file-to-a-directory
-def mkdir_p(mypath):
-    '''Creates a directory. equivalent to using mkdir -p on the command line'''
-    try:
-        makedirs(mypath)
-    except OSError as exc: # Python >2.5
-        if exc.errno == EEXIST and path.isdir(mypath):
-            pass
-        else: raise
+# #https://stackoverflow.com/questions/11373610/save-matplotlib-file-to-a-directory
+# def mkdir_p(mypath):
+#     '''Creates a directory. equivalent to using mkdir -p on the command line'''
+#     try:
+#         makedirs(mypath)
+#     except OSError as exc: # Python >2.5
+#         if exc.errno == EEXIST and path.isdir(mypath):
+#             pass
+#         else: raise
 
         
-def datafilename(fn):
-    #newdirectory()
-    #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
-    #likely unneeded
-    #<-- absolute dir the script is in
-    #data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
-    #filename="D:\My Documents\Zimanyi Group\Kinetic Disorder\ZG-FSS\data\" + str(fn)
+# def datafilename(fn):
+#     #newdirectory()
+#     #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
+#     #likely unneeded
+#     #<-- absolute dir the script is in
+#     #data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
+#     #filename="D:\My Documents\Zimanyi Group\Kinetic Disorder\ZG-FSS\data\" + str(fn)
 
-    global dirpath
-    dirpath =os.path.join(script_dir,outputdir+fn.removesuffix('.txt'))
+#     global dirpath
+#     dirpath =os.path.join(script_dir,outputdir+fn.removesuffix('.txt'))
 
-    if os.path.exists(dirpath) is not True:
-        os.mkdir(dirpath)
+#     if os.path.exists(dirpath) is not True:
+#         os.mkdir(dirpath)
 
-    filename = os.path.join(script_dir, datadir+fn)
-    return filename
+#     filename = os.path.join(script_dir, datadir+fn)
+#     return filename
 
 
 #broken bits
