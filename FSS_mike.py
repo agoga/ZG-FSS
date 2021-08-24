@@ -37,6 +37,9 @@ def openfileZeke(filename):
             outputlst.append([L, W, c, g])
     return outputlst
 
+def showplt(plt, show):
+    if show:
+        plt.show()
 fs = 18 #font size
 
 
@@ -45,6 +48,8 @@ fs = 18 #font size
 #A 
 #small L and finite size effect
 minL = 8#slice off lowest L, tip of the data
+
+show=False
 
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
@@ -59,11 +64,12 @@ n_I = 1
 m_R = 2
 m_I = 1
 
+datafile='offdiagE6W15.txt'
 
 window_width = 1.0 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
-window_center = 0.74
-filename  = cfg.datafilename('offdiagE6W10.txt')
+window_center = 0.79
+filename  = cfg.datafilename(datafile)
 input = np.array(openfile(filename))
 
 Lrange = np.unique(input[:, 0])
@@ -240,8 +246,6 @@ if __name__ == '__main__':
     L = L_restart
     Tvar = Tvar_restart
 
-
-
     print("Best solution"+str(solution))
     #print("Best solution cost/pt: "+str(pop.get_f()[pop.best_idx()]/len(Lambda)))
     print("Best solution cost/pt: "+str(np.min(archi.get_champions_f())/len(Lambda)))
@@ -261,7 +265,6 @@ if __name__ == '__main__':
     plt.hist(nu_1s, label=r'$\nu$', color='#1a1af980')
     plt.xlabel(r'$\nu$')
     plt.ylabel('counts')
-    plt.savefig(cfg.outputfilename())
 
     def plotScalingFunc(T, L, args):
         Tc = args[0]
@@ -287,7 +290,6 @@ if __name__ == '__main__':
         #ax2.set_xscale('linear')
 
         ax1.set_yscale('log')
-        plt.savefig(cfg.outputfilename())
         #ax2.set_yscale('log')
 
 
@@ -318,7 +320,8 @@ if __name__ == '__main__':
     ax3.set_xticklabels(list(map(int, Lrange)))
     ax3.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
 
-    plt.savefig(cfg.outputfilename())
+
+    #plt.savefig(cfg.outputfilename('histogram'))
     #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
 
 
@@ -351,6 +354,12 @@ if __name__ == '__main__':
         ax2.scatter(champs[:,Pindex],champs[:,1],marker='o')
 
 
+
     samp.on_changed(update)
-    plt.savefig(cfg.outputfilename())
-    plt.show()
+    #plt.title
+    #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
+    datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
+    cfg.savecsv(datacsv)
+    fig1.suptitle("E: 6 - W: 15 - Tc: %f - nu: %f" % (solution[0], solution[1]))
+    fig1.savefig(cfg.runfilename('Scatter'))
+    showplt(plt,show)

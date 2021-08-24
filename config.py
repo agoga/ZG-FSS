@@ -5,30 +5,78 @@ import random
 
 import numpy as np
 import scipy as sc
-
+import csv
+from csv import writer
 from os import makedirs,path
 
 from errno import EEXIST
+now = datetime.now()
+runname=now.strftime("%H_%M")
 
-script_dir = os.path.dirname(__file__) 
-outputdir = os.path.join(script_dir, 'output\\')
-datadir="data\\"
-dirpath="tmp\\"
-new_name=""
-count=1
+scriptdir = os.path.dirname(__file__) 
+outputdir = os.path.join(scriptdir, 'output\\')#static ..\output\
+datadir= os.path.join(scriptdir, 'data\\')#static ..\data\
+setdir=''#current set: ..\output\offdiagE10W10\
+rundir=''#current run: \offdiagEW\2_10\
+dirdir=''
+setname=''
+hurdir=''
+
+
+datafile=''
+new_name=''
+
+
+
+
+#important values, E, W, nu
 
 #do you want to crash? name something just 'print'...
 def dprint(input):
     if debug:
         print(input)
+        
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))] 
 
-def outputfilename(identifier=''):
-    global count
-    global dirpath
+def datafilename(fn):
+    '''
+        Give W and E
+    '''
+    global datafile
+    global setdir
+    global rundir
+    global setname
+    setname=fn.removesuffix('.txt')
+    #newdirectory()
+    #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
+    #likely unneeded
+    #<-- absolute dir the script is in
+    #data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
+    #filename="D:\My Documents\Zimanyi Group\Kinetic Disorder\ZG-FSS\data\" + str(fn)
+
     
+
+    setdir =os.path.join(scriptdir,outputdir+setname)
+    if os.path.exists(setdir) is not True:
+        os.mkdir(setdir)
+
+    rundir=os.path.join(setdir,runname)
+    
+    if os.path.exists(rundir) is not True:
+        os.mkdir(rundir)
+
+    filename = os.path.join(scriptdir, datadir+fn)
+    return filename
+
+def setrunfolder(folder):
+    global rundir
+    rundir = folder
+
+def setfilename(identifier=''):
+    global setdir
+
     #TODO adam ugly
     #tmpiter= os.listdir(outputdir)
     #if len(tmpiter) == 0:
@@ -36,8 +84,24 @@ def outputfilename(identifier=''):
     #else:
     #    last_number = max([int(name) for name in tmpiter if name.isnumeric()])
     #    new_name = str(last_number + 1)
+    #print(curdir)
+    now = datetime.now()
+    #print(curdir)
 
-    
+    # dd/mm/YY H:M:S
+    #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
+    if identifier == '':
+        identifier = now.strftime("%H_%M_%S")
+    return(os.path.join(setdir, identifier))
+
+# dd/mm/YY H:M:S
+    #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
+    #if identifier == '':
+   #     identifier = now.strftime("%H_%M_%S_")+str(count)
+   #     count += 1
+
+def runfilename(identifier=''):
+    #outputfilename(identifier)
 
     #curdir=newdirectory()
     now = datetime.now()
@@ -46,12 +110,20 @@ def outputfilename(identifier=''):
     # dd/mm/YY H:M:S
     #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
     if identifier == '':
-        identifier = now.strftime("%H_%M_%S_")+str(count)
-        count += 1
-    return(os.path.join(dirpath, identifier))
+        identifier = now.strftime("%H_%M_%S")
+    return(os.path.join(rundir, identifier))
 
-#remix
-raw=[]
+def savecsv(data):
+    global runname
+    csvfilename=setfilename(setname+'.csv')
+    data=[runname] + data
+
+    #data=runname+','+data+''
+    with open(csvfilename,'a',newline='', encoding='utf-8') as fd:
+        csv_writer=writer(fd)
+        csv_writer.writerow(data)
+
+    return data
 
 '''
 	coupling_matrix_down: The coupling between the nth and n-1th bars/strips.
@@ -59,100 +131,86 @@ raw=[]
 	size: the width of the strip or bar. Currently only square bars are supported
 	fraction: the fraction of links that are "good", AKA necking fraction
 	E: The fermi level, 0 represents the center of the band
-	'''
-class analyzedData(raw=[],win,outp):
+'''
+
+# class analyzedData(raw=[],win,outp):
 
 
-    window:[]
+#     window:[]
 
-    outputStr=''
-    day:int
-    hour:int
+#     outputStr=''
+#     day:int
+#     hour:int
 
-    #decimalYr:Time
-    label:str
-
-
-    def __init__(self, raw=None,window=None,outputPath=None):
-        if raw is not None:
-            super().__init__(copy=raw)
+#     #decimalYr:Time
+#     label:str
 
 
-        if hasattr(self,'mjd') and self.mjd is not None:
-            mjd = self.mjd
-            self.day = int(np.floor(mjd))
-            self.hour = int(str(mjd).split('.')[1])
-            self.decimalYr = Time(mjd,format='mjd')
-            self.decimalYr.format = 'decimalyear'
-        else:
-            self.mjd = None
+#     def __init__(self, raw=None,window=None,outputPath=None):
+#         if raw is not None:
+#             super().__init__(copy=raw)
 
-        self.outputPath=outputPath
-        self.window = window
 
-    def raw(self):#for 
-        return self
+#         if hasattr(self,'mjd') and self.mjd is not None:
+#             mjd = self.mjd
+#             self.day = int(np.floor(mjd))
+#             self.hour = int(str(mjd).split('.')[1])
+#             self.decimalYr = Time(mjd,format='mjd')
+#             self.decimalYr.format = 'decimalyear'
+#         else:
+#             self.mjd = None
+
+#         self.outputPath=outputPath
+#         self.window = window
+
+#     def raw(self):#for 
+#         return self
 
     
-    #if this is an average then we put it in the day's folder as day_combined_data and save it slightly diff
-    #location that the data should go to
-    def data_path(self):
-        if self.average is False:
-            return self.outputDir()+str(self.hour)+"_data"
-        else:
-            return self.outputDir()+str(self.day)+"_combined_data"
+#     #if this is an average then we put it in the day's folder as day_combined_data and save it slightly diff
+#     #location that the data should go to
+#     def data_path(self):
+#         if self.average is False:
+#             return self.outputDir()+str(self.hour)+"_data"
+#         else:
+#             return self.outputDir()+str(self.day)+"_combined_data"
 
-    #location pdf reports go to
-    def report_path(self):
-        if self.average is False:
-            return  self.outputDir()+str(self.hour)+"_"+"_report.pdf"
-        else:
-            return  self.outputDir()+str(self.day)+"_"+"_combined_report.pdf"
+#     #location pdf reports go to
+#     def report_path(self):
+#         if self.average is False:
+#             return  self.outputDir()+str(self.hour)+"_"+"_report.pdf"
+#         else:
+#             return  self.outputDir()+str(self.day)+"_"+"_combined_report.pdf"
 
-    #def label(self):
-        #return 
+#     #def label(self):
+#         #return 
 
-    def outputDir(self):
-        if self.outputPath is None:
-            return "output/"+self.lin+"/"+str(self.day)+"/"
-        else:
-            return self.outputPath+self.lin+"/"+str(self.day)+"/"
+#     def outputDir(self):
+#         if self.outputPath is None:
+#             return "output/"+self.lin+"/"+str(self.day)+"/"
+#         else:
+#             return self.outputPath+self.lin+"/"+str(self.day)+"/"
 
-    def pdfTitle(self):
-        t = ''
-#        if self.bad:
-#            t = 'bad '
-        #t += 'N
-        return t
+#     def pdfTitle(self):
+#         t = ''
+# #        if self.bad:
+# #            t = 'bad '
+#         #t += 'N
+#         return t
 
 
-#https://stackoverflow.com/questions/11373610/save-matplotlib-file-to-a-directory
-def mkdir_p(mypath):
-    '''Creates a directory. equivalent to using mkdir -p on the command line'''
-    try:
-        makedirs(mypath)
-    except OSError as exc: # Python >2.5
-        if exc.errno == EEXIST and path.isdir(mypath):
-            pass
-        else: raise
+# #https://stackoverflow.com/questions/11373610/save-matplotlib-file-to-a-directory
+# def mkdir_p(mypath):
+#     '''Creates a directory. equivalent to using mkdir -p on the command line'''
+#     try:
+#         makedirs(mypath)
+#     except OSError as exc: # Python >2.5
+#         if exc.errno == EEXIST and path.isdir(mypath):
+#             pass
+#         else: raise
 
         
-def datafilename(fn):
-    #newdirectory()
-    #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
-    #likely unneeded
-    #<-- absolute dir the script is in
-    #data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
-    #filename="D:\My Documents\Zimanyi Group\Kinetic Disorder\ZG-FSS\data\" + str(fn)
 
-    global dirpath
-    dirpath =os.path.join(script_dir,outputdir+fn.removesuffix('.txt'))
-
-    if os.path.exists(dirpath) is not True:
-        os.mkdir(dirpath)
-
-    filename = os.path.join(script_dir, datadir+fn)
-    return filename
 
 
 #broken bits
