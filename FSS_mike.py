@@ -66,8 +66,8 @@ m_I = 1
 
 datafile='offdiagE6W15.txt'
 
-window_width = 1.0 #width of window
-window_offset = 0.0  #  distance from window center to near edge of window
+window_width = .09 #width of window
+window_offset = .08  #  distance from window center to near edge of window
 window_center = 0.79
 filename  = cfg.datafilename(datafile)
 input = np.array(openfile(filename))
@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
     #A force_bounds ignores the boundaries
     #cmaes is the gold standard of fitting
-    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
+    algo = pg.algorithm(pg.cmaes(gen=10000, force_bounds=False))
 
 
     #pop = pg.population(prob, 100)
@@ -360,6 +360,6 @@ if __name__ == '__main__':
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
     datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
     cfg.savecsv(datacsv)
-    fig1.suptitle("E: 6 - W: 15 - Tc: %f - nu: %f" % (solution[0], solution[1]))
+    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Tc: %f - nu: %f" % (solution[0], solution[1]))
     fig1.savefig(cfg.runfilename('Scatter'))
     showplt(plt,show)
