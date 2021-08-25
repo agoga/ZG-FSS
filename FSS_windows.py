@@ -6,10 +6,19 @@ from scipy import stats
 from scipy import optimize
 from scipy import special
 from scipy.stats import chi2
+import sys
 import gc
 import config as cfg
-
+import argparse
 import pygmo as pg
+
+
+#parser = argparse.ArgumentParser(description='Window args')
+#parser.add_argument("in_wc",type=int,...,required=False)
+#parser.add_argument("in_ww",type=int,required=False)
+#parser.add_argument("in_wo",type=int,required=False)
+#args=parser.parse_args()
+
 
 def openfile(filename):
     f = open(filename, "r")
@@ -50,10 +59,11 @@ fs = 18 #font size
 minL = 8#slice off lowest L, tip of the data
 
 show=False
-
+if show is False:
+    plt.ioff()
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
-crit_bound_lower, crit_bound_upper = 0.62, 0.68 # critical value bounds
+crit_bound_lower, crit_bound_upper = 0.69, 0.88 # critical value bounds
 nu_bound_lower, nu_bound_upper = 1.05, 1.8  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
@@ -66,9 +76,19 @@ m_I = 1
 
 datafile='offdiagE6W15.txt'
 
-window_width = .09 #width of window
-window_offset = .08  #  distance from window center to near edge of window
+
 window_center = 0.79
+window_offset = 0.06#  distance from window center to near edge of window
+window_width = .02 #width of window
+
+
+if len(sys.argv) > 1:
+    window_center = float(sys.argv[1])
+    window_offset = float(sys.argv[2])
+    window_width = float(sys.argv[3])
+    
+    
+
 filename  = cfg.datafilename(datafile)
 input = np.array(openfile(filename))
 
@@ -108,7 +128,7 @@ if n_I > 0:
     numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
 else:
     numParams = n_R + m_R
-print(str(numParams) + "+3 parameters")
+#print(str(numParams) + "+3 parameters")
 
 
 if numBoot==1:
@@ -257,9 +277,9 @@ if __name__ == '__main__':
     TcCI = np.percentile(Tcs, [2.5, 97.5], interpolation='lower')
     nu_1s = champs[:,1]
     nu_1CI = np.percentile(nu_1s, [2.5, 97.5], interpolation='lower')
+    print('File: '+filename)
     print('Tc: %f [%f, %f]' % (solution[0], np.min(Tcs), np.max(Tcs)))
     print('nu: %f [%f, %f]' % (solution[1], np.min(nu_1s), np.max(nu_1s)))
-    print('File: '+filename)
 
     plt.figure()
     plt.hist(nu_1s, label=r'$\nu$', color='#1a1af980')
