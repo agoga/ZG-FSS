@@ -11,7 +11,8 @@ from os import makedirs,path
 
 from errno import EEXIST
 now = datetime.now()
-runname=now.strftime("%H_%M")
+#default of no run name
+runname=''#now.strftime("%H_%M")
 
 scriptdir = os.path.dirname(__file__) 
 outputdir = os.path.join(scriptdir, 'output\\')#static ..\output\
@@ -72,6 +73,7 @@ def datafilename(fn):
 
 def setrunfolder(folder):
     global rundir
+    rundir=''
     rundir = folder
 
 def setfilename(identifier=''):
@@ -100,6 +102,16 @@ def setfilename(identifier=''):
    #     identifier = now.strftime("%H_%M_%S_")+str(count)
    #     count += 1
 
+def uniquify(path):
+    filename, extension = os.path.splitext(path)
+    counter = 1
+
+    while os.path.exists(path):
+        path = filename + " (" + str(counter) + ")" + extension
+        counter += 1
+    print(path)
+    return path
+
 def runfilename(identifier=''):
     #outputfilename(identifier)
 
@@ -111,7 +123,8 @@ def runfilename(identifier=''):
     #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
     if identifier == '':
         identifier = now.strftime("%H_%M_%S")
-    return(os.path.join(rundir, identifier))
+
+    return(uniquify(os.path.join(rundir, identifier)))
 
 def savecsv(data):
     global runname

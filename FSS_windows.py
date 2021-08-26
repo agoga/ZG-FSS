@@ -141,7 +141,9 @@ L_restart = L
 Tvar_restart = Tvar
 sigma_restart = sigma
 
-if __name__ == '__main__':
+
+if __name__ == '__main__' or len(sys.argv) > 1:
+    print('arg len: '+str(len(sys.argv)))
     class objective_function:
         def fitness(self, x):
             def scalingFunc(T, L, Tc, nu, y, A, b, c):
@@ -376,10 +378,19 @@ if __name__ == '__main__':
 
 
     samp.on_changed(update)
+    nuval=solution[1]
     #plt.title
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
     datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
+    ostr=str(window_offset).split('.')[1]
+    wstr=str(window_width).split('.')[1]
+    if nuval > 1:
+        nustr=str(round(nuval,2)).replace('.','_')
+    else:
+        nustr=str(round(nuval,2)).split('.')[1]
+
+    fname='nu_%s--O_%s-W_%s' % (nustr,ostr,wstr)
     cfg.savecsv(datacsv)
     fig1.suptitle(datafile.removesuffix('.txt.')+ " - Tc: %f - nu: %f" % (solution[0], solution[1]))
-    fig1.savefig(cfg.runfilename('Scatter'))
+    fig1.savefig(cfg.runfilename(fname))
     showplt(plt,show)
