@@ -74,12 +74,12 @@ n_I = 1
 m_R = 2
 m_I = 1
 
-datafile='offdiagE6W15.txt'
+datafile='offdiagE6W16.txt'
 
 
 window_center = 0.79
-window_offset = 0.06#  distance from window center to near edge of window
-window_width = .02 #width of window
+window_offset = 0.00#  distance from window center to near edge of window
+window_width = 1.0 #width of window
 
 
 if len(sys.argv) > 1:
@@ -385,15 +385,13 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     #plt.title
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
     datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
-    ostr=str(window_offset).split('.')[1]
-    wstr=str(window_width).split('.')[1]
+    ostr=str(float(window_offset)).split('.')[1]
+    wstr=str(float(window_width)).split('.')[1]
     if nuval > 1:
         nustr=str(round(nuval,3)).replace('.','_')
     else:
         nustr=str(round(nuval,3)).split('.')[1]
 
-    nustr='1_433'
-    window_offset=.01
     fname='nu_%s--O_%s-W_%s' % (nustr,ostr,wstr)
     cfg.savecsv(datacsv)
 
