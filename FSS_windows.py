@@ -391,6 +391,6 @@ if __name__ == '__main__' or len(sys.argv) > 1:
 
     fname='nu_%s--O_%s-W_%s' % (nustr,ostr,wstr)
     cfg.savecsv(datacsv)
-    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Tc: %f - nu: %f" % (solution[0], solution[1]))
+    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Tc: %f - nu: %f - offset: %f - width: %f" % (solution[0], solution[1], window_offset,window_width))
     fig1.savefig(cfg.runfilename(fname))
     showplt(plt,show)
