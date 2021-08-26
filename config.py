@@ -122,7 +122,7 @@ def runfilename(identifier=''):
     if identifier == '':
         identifier = now.strftime("%H_%M_%S")
 
-    return(uniquify(os.path.join(rundir, identifier)))
+    return(uniquefile(os.path.join(rundir, identifier)))
 
 def savecsv(data):
     global runname
