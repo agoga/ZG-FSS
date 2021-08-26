@@ -87,7 +87,6 @@ if len(sys.argv) > 1:
     window_offset = float(sys.argv[2])
     window_width = float(sys.argv[3])
     
-    
 
 filename  = cfg.datafilename(datafile)
 input = np.array(openfile(filename))
@@ -121,7 +120,7 @@ numBoot = len(Lambda)//4
 numBoot = 1
 
 
-fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+
 
 
 if n_I > 0:
@@ -142,8 +141,9 @@ Tvar_restart = Tvar
 sigma_restart = sigma
 
 
-if __name__ == '__main__' or len(sys.argv) > 1:
-    print('arg len: '+str(len(sys.argv)))
+if __name__ == '__main__':# or len(sys.argv) > 1:
+    print("center:%f offset: %f - width: %f" % (window_center, window_offset,window_width))
+    fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
     class objective_function:
         def fitness(self, x):
             def scalingFunc(T, L, Tc, nu, y, A, b, c):
@@ -378,19 +378,27 @@ if __name__ == '__main__' or len(sys.argv) > 1:
 
 
     samp.on_changed(update)
+
+
     nuval=solution[1]
+    cc=solution[0]
     #plt.title
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
     datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
     ostr=str(window_offset).split('.')[1]
     wstr=str(window_width).split('.')[1]
     if nuval > 1:
-        nustr=str(round(nuval,2)).replace('.','_')
+        nustr=str(round(nuval,3)).replace('.','_')
     else:
-        nustr=str(round(nuval,2)).split('.')[1]
+        nustr=str(round(nuval,3)).split('.')[1]
 
+    nustr='1_433'
+    window_offset=.01
     fname='nu_%s--O_%s-W_%s' % (nustr,ostr,wstr)
     cfg.savecsv(datacsv)
-    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Tc: %f - nu: %f - offset: %f - width: %f" % (solution[0], solution[1], window_offset,window_width))
-    fig1.savefig(cfg.runfilename(fname))
+
+    if window_offset != 0:
+        cc='--'
+    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Cc: %f - nu: %f - offset: %.2f - width: %.2f" % (solution[0], solution[1], window_offset,window_width))
+    fig1.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)

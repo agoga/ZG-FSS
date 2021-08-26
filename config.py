@@ -102,14 +102,12 @@ def setfilename(identifier=''):
    #     identifier = now.strftime("%H_%M_%S_")+str(count)
    #     count += 1
 
-def uniquify(path):
-    filename, extension = os.path.splitext(path)
-    counter = 1
-
+def uniquefile(path):
+    fn, ext = os.path.splitext(path)
+    i = 1
     while os.path.exists(path):
-        path = filename + " (" + str(counter) + ")" + extension
-        counter += 1
-    print(path)
+        path = fn + " (" + str(i) + ")" + ext
+        i += 1
     return path
 
 def runfilename(identifier=''):
