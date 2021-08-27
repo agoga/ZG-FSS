@@ -127,7 +127,7 @@ def runfilename(identifier=''):
 def savecsv(data):
     global runname
     csvfilename=setfilename(setname+'.csv')
-    data=[runname] + data
+    #data=[now.strftime("%D %H:%M")] + data
 
     #data=runname+','+data+''
     with open(csvfilename,'a',newline='', encoding='utf-8') as fd:

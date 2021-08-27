@@ -11,7 +11,12 @@ import gc
 import config as cfg
 import argparse
 import pygmo as pg
+import time
+from datetime import datetime
 
+
+now = datetime.now()
+startt=time.time()
 
 #parser = argparse.ArgumentParser(description='Window args')
 #parser.add_argument("in_wc",type=int,...,required=False)
@@ -64,7 +69,7 @@ if show is False:
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
 crit_bound_lower, crit_bound_upper = 0.69, 0.88 # critical value bounds
-nu_bound_lower, nu_bound_upper = 1.05, 1.8  # nu bounds
+nu_bound_lower, nu_bound_upper = 1.05, 2.0  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
 
@@ -74,19 +79,19 @@ n_I = 1
 m_R = 2
 m_I = 1
 
-datafile='offdiagE6W16.txt'
+datafile='E6W16MINZ3MM.txt'
 
 
-window_center = 0.79
+window_center = 0.89
 window_offset = 0.00#  distance from window center to near edge of window
-window_width = 1.0 #width of window
+window_width = 1.0 # width of window
 
-
+#@TODO fire myself
 if len(sys.argv) > 1:
-    window_center = float(sys.argv[1])
-    window_offset = float(sys.argv[2])
-    window_width = float(sys.argv[3])
-    
+    datafile=str(sys.argv[1])
+    window_center = float(sys.argv[2])
+    window_offset = float(sys.argv[3])
+    window_width = float(sys.argv[4])
 
 filename  = cfg.datafilename(datafile)
 input = np.array(openfile(filename))
@@ -380,11 +385,19 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     samp.on_changed(update)
 
 
+
+
+
+#output
+    endt=time.time()
+    exet=endt-startt
+    print('execution time: %.3f' % (exet))
+
     nuval=solution[1]
     cc=solution[0]
     #plt.title
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
-    datacsv=[solution[0], solution[1], window_center, window_width, window_offset]
+    datacsv=[now.strftime("%D %H:%M"), exet, solution[0], window_center, window_width, window_offset,solution[1]]
     ostr=str(float(window_offset)).split('.')[1]
     wstr=str(float(window_width)).split('.')[1]
     if nuval > 1:
@@ -397,6 +410,6 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
 
     if window_offset != 0:
         cc='--'
-    fig1.suptitle(datafile.removesuffix('.txt.')+ " - Cc: %f - nu: %f - offset: %.2f - width: %.2f" % (solution[0], solution[1], window_offset,window_width))
+    fig1.suptitle(datafile.removesuffix('.txt')+ " in %.2fs \n\nCc: %f - nu: %f - offset: %.2f - width: %.2f" % (exet,solution[0], solution[1], window_offset,window_width))
     fig1.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)
