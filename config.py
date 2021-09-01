@@ -11,7 +11,8 @@ from os import makedirs,path
 
 from errno import EEXIST
 now = datetime.now()
-runname=now.strftime("%H_%M")
+#default of no run name
+runname=''#now.strftime("%H_%M")
 
 scriptdir = os.path.dirname(__file__) 
 outputdir = os.path.join(scriptdir, 'output\\')#static ..\output\
@@ -72,6 +73,7 @@ def datafilename(fn):
 
 def setrunfolder(folder):
     global rundir
+    rundir=''
     rundir = folder
 
 def setfilename(identifier=''):
@@ -100,6 +102,14 @@ def setfilename(identifier=''):
    #     identifier = now.strftime("%H_%M_%S_")+str(count)
    #     count += 1
 
+def uniquefile(path):
+    fn, ext = os.path.splitext(path)
+    i = 1
+    while os.path.exists(path):
+        path = fn + " (" + str(i) + ")" + ext
+        i += 1
+    return path
+
 def runfilename(identifier=''):
     #outputfilename(identifier)
 
@@ -111,12 +121,13 @@ def runfilename(identifier=''):
     #script_dir = os.path.dirname(__file__) #<-- absolute dir the script is in)
     if identifier == '':
         identifier = now.strftime("%H_%M_%S")
-    return(os.path.join(rundir, identifier))
+
+    return(uniquefile(os.path.join(rundir, identifier)))
 
 def savecsv(data):
     global runname
     csvfilename=setfilename(setname+'.csv')
-    data=[runname] + data
+    #data=[now.strftime("%D %H:%M")] + data
 
     #data=runname+','+data+''
     with open(csvfilename,'a',newline='', encoding='utf-8') as fd:
