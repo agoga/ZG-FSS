@@ -6,6 +6,8 @@ from scipy import optimize
 from scipy import special
 from scipy.stats import chi2
 import pygmo as pg
+import warnings
+from multiprocessing import Pool
 
 def openfile(filename):
     f = open(filename, "r")
@@ -39,6 +41,11 @@ def bootVals(Lambda,L,Tvar,sigma,n):
     Lnew=np.array([])
     Tvarnew=np.array([])
     sigmanew=np.array([])
+
+    if n==1:
+        #don't do any sampling
+        return np.array([1]), Lambda, L, Tvar, sigma
+
     for i in range(0,n):
         outputtemp=(np.random.choice(len(Lambda), int(len(Lambda)), replace=True))
         outputtemp=np.sort(outputtemp)
@@ -58,21 +65,20 @@ def bootVals(Lambda,L,Tvar,sigma,n):
 
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="Data/offdiagE2W10.txt"
+filename="../data/offdiagE2W10.txt"
 minL = 8
 
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
-crit_bound_lower, crit_bound_upper = 0.62, 0.68 # critical value bounds
+crit_bound_lower, crit_bound_upper = 0.6, 0.8 # critical value bounds
 nu_bound_lower, nu_bound_upper = 1.05, 1.8  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
-param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
+param_bound_lower, param_bound_upper = -100.0, 100.1  # all other bounds
 
 # orders of expansion
 n_R = 3
 n_I = 1
 m_R = 2
 m_I = 1
-resamplesize=5 #number of resamples
 
 
 window_width = 1.0 #width of window
@@ -105,26 +111,13 @@ Tvar = c
 #print(L)
 #print(Tvar)
 
-
-numBoot = len(Lambda)//4
-numBoot = 1
+np.seterr(all='raise')
 
 if n_I > 0:
     numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
 else:
     numParams = n_R + m_R
 
-print(str(numParams) + "+3 parameters")
-
-
-if numBoot==1:
-    bootSize=1
-else:
-    bootSize = 0.9 #fraction of data to keep
-
-#bootstrap method  generate n sets of randints
-
-randints,bLambda,bL,bTvar,bsigma=bootVals(Lambda,L,Tvar,sigma,resamplesize) #getting new variables with prefix b to designate bootstrap resamples
 
 
 if __name__ == '__main__':
@@ -136,6 +129,7 @@ if __name__ == '__main__':
             self.Lambda=Lambda
         def fitness(self, x):
             def scalingFunc(T, Lval, Tc, nu, y, A, b, c):
+
                 t = (T - Tc) / Tc  # This is filled with values for different L
 
                 powers_of_t_chi = np.power(np.column_stack([t] * (m_R)),
@@ -197,85 +191,93 @@ if __name__ == '__main__':
             bounds = np.transpose(bounds)
             return (bounds[0,:], bounds[1,:])
 
- 
-    #print(bL[0,:])
-    #print(bTvar[0,:])
-    prob = pg.problem(objective_function(L,Tvar,Lambda))
+            # bootstrap method  generate n sets of randints.
 
-    #algo = pg.algorithm(pg.pso(gen=1000, eta1=3.2, eta2=2.0))
-    #algo = pg.algorithm(pg.de(gen=1000, F=0.5, CR=0.9, variant=4, ftol=1e-06))
-    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
-    #pop = pg.population(prob, 100)
-    #algo.set_verbosity(100)
-    archi = pg.archipelago(n=6, algo=algo,prob=prob, pop_size=100)
-    #pop = algo.evolve(pop)
+    resamplesize = 12  # number of resamples
+    numCPUs = 4  # number of processors to use. Each one will do a resample
 
-    archi.evolve()
-    archi.wait()
-    #print(pop)
+    randints, bLambda, bL, bTvar, bsigma = bootVals(Lambda, L, Tvar, sigma, resamplesize)  # getting new variables with prefix b to designate bootstrap resamples
 
-    #solution = pop.get_x()[pop.best_idx()]
-    solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
-    print('Tc is: {:.3f}, Nu is {:.3f}'.format(solution[0],solution[1]))
-    Tcfinal=solution[0]
-    Nufinal=solution[1]
-    #champs = np.array(pop.get_x())
-    #champs = np.array(archi.get_champions_x())
+
+    print(str(numParams) + "+3 parameters")
 
     Nurange=np.array([])
     Tcrange=np.array([])
-    print('Resample Vals:')
-    for i in range(0,resamplesize):
-        del prob,archi,algo
-        print('Bootstrapping {}%'.format(i/resamplesize*100))
-        prob = pg.problem(objective_function(bL[i,:],bTvar[i,:],bLambda[i,:]))
 
-        #algo = pg.algorithm(pg.pso(gen=1000, eta1=3.2, eta2=2.0))
-        #algo = pg.algorithm(pg.de(gen=1000, F=0.5, CR=0.9, variant=4, ftol=1e-06))
-        algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
-        #pop = pg.population(prob, 100)
-        #algo.set_verbosity(100)
-        archi = pg.archipelago(n=6, algo=algo,prob=prob, pop_size=100)
-        #pop = algo.evolve(pop)
+    if resamplesize == 1 and bL.ndim == 1:  # fix edge case
+        bL = np.expand_dims(L, 0)
+        bTvar = np.expand_dims(Tvar, 0)
+        bLambda = np.expand_dims(Lambda, 0)
 
-        archi.evolve()
-        archi.wait()
-        #print(pop)
+    #list containing problem descriptions for each bootstrap resample
+    problist = [pg.problem(objective_function(bL[i, :], bTvar[i, :], bLambda[i, :])) for i in range(resamplesize)]
+    probbackup = problist
 
-        #solution = pop.get_x()[pop.best_idx()]
-        solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
-        print('ReTc is: {}, ReNu is {}'.format(solution[0],solution[1]))
-        Tcrange=np.append(Tcrange,solution[0])
-        Nurange=np.append(Nurange,solution[1])
+
+    #definition of the algorithm
+    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False, ftol=1e-8))
+    pg.mp_island.init_pool(processes=numCPUs)
+    islands = [pg.island(algo=algo, prob=problist[i], size=100, udi=pg.mp_island()) for i in range(resamplesize)]
+
+
+
+    _ = [isl.evolve() for isl in islands]
+    cnt = 0
+    solutions = np.array([])
+    for ind, isl in enumerate(islands):
+        #flow control for retrying after an exception
+        while True:
+            solution = [-1, -1]
+            with warnings.catch_warnings():
+                warnings.filterwarnings('error')
+                try:
+                    isl.wait_check() #rethrows any exceptions encountered during computation
+                    solution = isl.get_population().champion_x
+                except RuntimeError:
+
+                    print("Resample {} has raised an exception! nu: {}".format(ind, solution[1]))
+                    #reset the island and start 'er up
+                    islands[ind] = pg.island(algo=algo, prob=probbackup[ind], size=100, udi=pg.mp_island())
+                    islands[ind].evolve()
+                    continue
+                else:
+                    cnt = cnt + 1
+                    print('Bootstrapping {}% Tc: {}, nu: {}, worker {}'.format(round(cnt / resamplesize * 100),
+                                                                               round(solution[0], 2),
+                                                                               round(solution[1], 3), ind))
+                    # if no exceptions were thrown, store the result
+                    Tcrange = np.append(Tcrange, solution[0])
+                    Nurange = np.append(Nurange, solution[1])
+                    if len(solutions)==0:
+                        solutions = solution
+                    else:
+                        solutions = np.vstack([solutions, solution])
+                break
+
+    print(Nurange)
+    print(Tcrange)
 
         #champs = np.array(pop.get_x())
         #champs = np.array(archi.get_champions_x())
     #print(Nurange,Tcrange)
     nu_1CI = np.percentile(Nurange, [2.5, 97.5], interpolation='lower')
     TcCI = np.percentile(Tcrange, [2.5, 97.5], interpolation='lower')
+    Tcfinal = np.median(Tcrange)
+    Nufinal = np.median(Nurange)
     print('Tc: %f [%f, %f]' % (Tcfinal, TcCI[0], TcCI[1]))
-    print('nu: %f [%f, %f]' % (Nufinal, nu_1CI[0],nu_1CI[1]))
+    print('nu: %f [%f, %f]' % (Nufinal, nu_1CI[0], nu_1CI[1]))
 
-'''
-
-    print("Best solution"+str(solution))
+    solution = np.median(solutions, axis=0)
+    print("Median solution"+str(solution))
     #print("Best solution cost/pt: "+str(pop.get_f()[pop.best_idx()]/len(Lambda)))
-    print("Best solution cost/pt: "+str(np.min(archi.get_champions_f())/len(Lambda)))
+    #print("Best solution cost/pt: "+str(np.min(archi.get_champions_f())/len(Lambda)))
 
 
     print('n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I))
 
-    #Tcs = champs[:,0]
-    #TcCI = np.percentile(Tcs, [2.5, 97.5], interpolation='lower')
-    #nu_1s = champs[:,1]
-    #print(nu_1s)
-    #nu_1CI = np.percentile(nu_1s, [2.5, 97.5], interpolation='lower')
-    print('Tc: %f [%f, %f]' % (solution[0], np.min(Tcs), np.max(Tcs)))
-    print('nu: %f [%f, %f]' % (solution[1], np.min(nu_1s), np.max(nu_1s)))
-    print('File: '+filename)
 
     plt.figure()
-    plt.hist(nu_1s, label=r'$\nu$', color='#1a1af980')
+    plt.hist(Nurange, label=r'$\nu$', color='#1a1af980')
     plt.xlabel(r'$\nu$')
     plt.ylabel('counts')
     def plotScalingFunc(T, L, args):
@@ -335,7 +337,7 @@ if __name__ == '__main__':
 
     #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
 
-
+    '''
     #Plot heatmap
     fig2, ax2 = plt.subplots()
     Tcrange = np.linspace(crit_bound_lower,crit_bound_upper,50)
@@ -361,9 +363,9 @@ if __name__ == '__main__':
         ax2.set_ylabel(r'$\nu$', fontsize=fs)
         #ax4.set_ylabel(r'$s$', fontsize=fs)
         ax2.scatter(champs[:,Pindex],champs[:,1],marker='o')
-
-
     samp.on_changed(update)
+    '''
+
+
 
     plt.show()
-'''
