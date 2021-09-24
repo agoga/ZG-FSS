@@ -37,7 +37,7 @@ def openfileZeke(filename):
 
 fig1, ax3 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="offdiagE2W2try2.txt"
+filename="data\\offdiagE2W8.txt"
 minL = 8
 
 
@@ -81,11 +81,13 @@ for T in np.unique(Tvar)[::-1]:
         lbl='c='
     ax3.semilogy(npX, npY, 'o-', label=lbl + str(round(T,3)))
 ax3.set_xlabel('L', fontsize=fs)
+ax3.set_ylabel(r'$\Lambda$',fontsize=fs)
 ax3.set_xscale('log')
+ax3.set_title('E2W8',fontsize=fs*1.5)
 Lrange = np.arange(min(Lrange),max(Lrange)+1)
 ax3.set_xticks(Lrange)
 ax3.set_xticklabels(list(map(int, Lrange)))
-ax3.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+ax3.legend()
 
 
 plt.show()
