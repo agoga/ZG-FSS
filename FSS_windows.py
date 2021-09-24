@@ -62,6 +62,8 @@ fs = 18 #font size
 #A 
 #small L and finite size effect
 minL = 8#slice off lowest L, tip of the data
+#@TODO adam fix a loop for ranges 
+repeats=100
 
 show=False
 if show is False:
@@ -69,7 +71,7 @@ if show is False:
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
 crit_bound_lower, crit_bound_upper = 0.69, 0.88 # critical value bounds
-nu_bound_lower, nu_bound_upper = 1.05, 2.0  # nu bounds
+nu_bound_lower, nu_bound_upper = 1.05, 1.7  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
 
@@ -79,14 +81,15 @@ n_I = 1
 m_R = 2
 m_I = 1
 
+#@TODO allow multiple files and parameters so we can do logarithmic analysis
+#same W but more precise c values
 datafile='E6W16MINZ3MM.txt'
-
 
 window_center = 0.89
 window_offset = 0.00#  distance from window center to near edge of window
 window_width = 1.0 # width of window
 
-#@TODO fire myself
+#@TODO fire myself for param loop 
 if len(sys.argv) > 1:
     datafile=str(sys.argv[1])
     window_center = float(sys.argv[2])
@@ -250,14 +253,15 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
 
     #A force_bounds ignores the boundaries
     #cmaes is the gold standard of fitting
-    algo = pg.algorithm(pg.cmaes(gen=10000, force_bounds=False))
-
+    
+    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=True))
 
     #pop = pg.population(prob, 100)
     #algo.set_verbosity(100)
 
+    #@TODO Adam
     #A n is the number of threads
-    archi = pg.archipelago(n=6, algo=algo,prob=prob, pop_size=100)
+    archi = pg.archipelago(n=1, algo=algo,prob=prob, pop_size=100)
     #pop = algo.evolve(pop)
 
     archi.evolve()
@@ -265,7 +269,13 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     #print(pop)
 
     #solution = pop.get_x()[pop.best_idx()]
+
     solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
+
+
+    #the full set of nu
+    fullsolutions = archi.get_champions_x()
+
     #champs = np.array(pop.get_x())
     champs = np.array(archi.get_champions_x())
     Lambda = Lambda_restart
@@ -273,9 +283,10 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     L = L_restart
     Tvar = Tvar_restart
 
+    costpp = np.min(archi.get_champions_f())/len(Lambda)
     print("Best solution"+str(solution))
     #print("Best solution cost/pt: "+str(pop.get_f()[pop.best_idx()]/len(Lambda)))
-    print("Best solution cost/pt: "+str(np.min(archi.get_champions_f())/len(Lambda)))
+    print("Best solution cost/pt: "+str(costpp))
 
 
     print('n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I))
@@ -288,10 +299,13 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     print('Tc: %f [%f, %f]' % (solution[0], np.min(Tcs), np.max(Tcs)))
     print('nu: %f [%f, %f]' % (solution[1], np.min(nu_1s), np.max(nu_1s)))
 
+
+    #histogram of nu values
     plt.figure()
     plt.hist(nu_1s, label=r'$\nu$', color='#1a1af980')
     plt.xlabel(r'$\nu$')
     plt.ylabel('counts')
+    #@TODO Adam
 
     def plotScalingFunc(T, L, args):
         Tc = args[0]
@@ -390,14 +404,18 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
 
 #output
     endt=time.time()
-    exet=endt-startt
-    print('execution time: %.3f' % (exet))
+    exet=str("%.2fs" % (endt-startt))
+    print('execution time: ', exet)
 
-    nuval=solution[1]
-    cc=solution[0]
+    nuval=round(solution[1],10)
+    cc=round(solution[0],10)
     #plt.title
+
+
+    #cost per point @todo
+
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
-    datacsv=[now.strftime("%D %H:%M"), exet, solution[0], window_center, window_width, window_offset,solution[1]]
+    datacsv=[now.strftime("%D %H:%M"), exet.removesuffix('s'), cc, costpp, window_center, window_width, window_offset,nuval]
     ostr=str(float(window_offset)).split('.')[1]
     wstr=str(float(window_width)).split('.')[1]
     if nuval > 1:
@@ -410,6 +428,6 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
 
     if window_offset != 0:
         cc='--'
-    fig1.suptitle(datafile.removesuffix('.txt')+ " in %.2fs \n\nCc: %f - nu: %f - offset: %.2f - width: %.2f" % (exet,solution[0], solution[1], window_offset,window_width))
+    fig1.suptitle(datafile.removesuffix('.txt')+ "  cpp:%.2f   %s\n\nCc: %s - nu: %f - offset: %.2f - width: %.2f" % (costpp,exet,cc, nuval, window_offset,window_width))
     fig1.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)
