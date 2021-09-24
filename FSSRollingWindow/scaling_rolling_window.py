@@ -8,6 +8,7 @@ from scipy.stats import chi2
 import pygmo as pg
 import warnings
 from multiprocessing import Pool
+import time
 
 def openfile(filename):
     f = open(filename, "r")
@@ -65,14 +66,9 @@ def bootVals(Lambda,L,Tvar,sigma,n):
 
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="../data/offdiagE2W10.txt"
+filename="../data/offdiagE2W6.txt"
 minL = 8
 
-#crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
-crit_bound_lower, crit_bound_upper = 0.6, 0.8 # critical value bounds
-nu_bound_lower, nu_bound_upper = 1.05, 1.8  # nu bounds
-y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
-param_bound_lower, param_bound_upper = -100.0, 100.1  # all other bounds
 
 # orders of expansion
 n_R = 3
@@ -80,10 +76,12 @@ n_I = 1
 m_R = 2
 m_I = 1
 
+resamplesize = 60  # number of resamples
+numCPUs = 6  # number of processors to use. Each one will do a resample
 
-window_width = 1.0 #width of window
+window_width = 0.06 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
-window_center = 0.74
+window_center = 0.06
 
 input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
@@ -106,6 +104,14 @@ L = data[:, 0]
 W = data[:, 1]
 c = data[:, 2]
 sigma = data[:, 4] #uncomment for MacKinnon
+
+crit_bound_lower, crit_bound_upper = 0.06, 0.064  # critical value bounds
+#crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
+nu_bound_lower, nu_bound_upper = 0.8, 1.9  # nu bounds
+y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
+param_bound_lower, param_bound_upper = -100.0, 100.1  # all other bounds
+use_bounds = False
+
 # set the driving parameter
 Tvar = c
 #print(L)
@@ -193,8 +199,6 @@ if __name__ == '__main__':
 
             # bootstrap method  generate n sets of randints.
 
-    resamplesize = 12  # number of resamples
-    numCPUs = 4  # number of processors to use. Each one will do a resample
 
     randints, bLambda, bL, bTvar, bsigma = bootVals(Lambda, L, Tvar, sigma, resamplesize)  # getting new variables with prefix b to designate bootstrap resamples
 
@@ -215,62 +219,71 @@ if __name__ == '__main__':
 
 
     #definition of the algorithm
-    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False, ftol=1e-8))
+    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=use_bounds, ftol=1e-8))
     pg.mp_island.init_pool(processes=numCPUs)
+
+    #print("Computing main fit")
+    #pop = pg.population(prob=objective_function(L, Tvar, Lambda), size=500)
+    #algo.evolve(pop)
+
+    #best_main = pop.champion_x
+
+
+    print("Starting bootstrap")
     islands = [pg.island(algo=algo, prob=problist[i], size=100, udi=pg.mp_island()) for i in range(resamplesize)]
 
 
-
     _ = [isl.evolve() for isl in islands]
-    cnt = 0
     solutions = np.array([])
-    for ind, isl in enumerate(islands):
-        #flow control for retrying after an exception
-        while True:
-            solution = [-1, -1]
-            with warnings.catch_warnings():
-                warnings.filterwarnings('error')
-                try:
-                    isl.wait_check() #rethrows any exceptions encountered during computation
-                    solution = isl.get_population().champion_x
-                except RuntimeError:
-
-                    print("Resample {} has raised an exception! nu: {}".format(ind, solution[1]))
-                    #reset the island and start 'er up
-                    islands[ind] = pg.island(algo=algo, prob=probbackup[ind], size=100, udi=pg.mp_island())
-                    islands[ind].evolve()
-                    continue
+    while solutions.shape[0]<resamplesize:
+        for ind, isl in enumerate(islands):
+            if isl.status==pg.evolve_status.idle_error or isl.status==pg.evolve_status.busy_error:  # something blew up, try again
+                islands[ind] = pg.island(algo=algo, prob=probbackup[ind], size=100, udi=pg.mp_island())
+                islands[ind].evolve()
+                print('Island %i had an exception, restarting...' % ind)
+            if isl.status==pg.evolve_status.idle:  # completed normally, store the result
+                solution = isl.get_population().champion_x
+                score = isl.get_population().champion_f
+                Tcrange = np.append(Tcrange, solution[0])
+                Nurange = np.append(Nurange, solution[1])
+                if len(solutions)==0:
+                    solutions = np.expand_dims(solution, axis=0)
                 else:
-                    cnt = cnt + 1
-                    print('Bootstrapping {}% Tc: {}, nu: {}, worker {}'.format(round(cnt / resamplesize * 100),
-                                                                               round(solution[0], 2),
-                                                                               round(solution[1], 3), ind))
-                    # if no exceptions were thrown, store the result
-                    Tcrange = np.append(Tcrange, solution[0])
-                    Nurange = np.append(Nurange, solution[1])
-                    if len(solutions)==0:
-                        solutions = solution
-                    else:
-                        solutions = np.vstack([solutions, solution])
-                break
+                    solutions = np.vstack([solutions, solution])
+                print('Bootstrapping {}% Tc: {}, nu: {} from island {}'.format(round(len(solutions) / resamplesize * 100),
+                                                                round(solution[0], 3),
+                                                                round(solution[1], 3), ind))
+
+                #finally, remove the island from the array so its not counted twice (or three times, ...)
+                del islands[ind]
+        time.sleep(1)
+
+    _ = [isl.wait() for isl in islands]
 
     print(Nurange)
     print(Tcrange)
 
-        #champs = np.array(pop.get_x())
-        #champs = np.array(archi.get_champions_x())
-    #print(Nurange,Tcrange)
+
+    TcChoke = np.percentile(Tcrange, [37.5, 62.5], interpolation='lower') # tight range
+    Tcrangef = Tcrange[Tcrange >= TcChoke[0]]
+    Nurangef = Nurange[Tcrange >= TcChoke[0]]
+    Nurangef = Nurangef[Tcrangef <= TcChoke[1]]
+    Tcrangef = Tcrangef[Tcrangef <= TcChoke[1]]
+
     nu_1CI = np.percentile(Nurange, [2.5, 97.5], interpolation='lower')
     TcCI = np.percentile(Tcrange, [2.5, 97.5], interpolation='lower')
     Tcfinal = np.median(Tcrange)
-    Nufinal = np.median(Nurange)
-    print('Tc: %f [%f, %f]' % (Tcfinal, TcCI[0], TcCI[1]))
-    print('nu: %f [%f, %f]' % (Nufinal, nu_1CI[0], nu_1CI[1]))
+    Nufinal = np.median(Nurange) # Don't take Nufinal if you are pregnant or nursing
+    print('50%ile Tc range: {}, {}'.format(round(min(Tcrangef),3), round(max(Tcrangef),3)))
+    print('50%ile nu range: {}, {}'.format(round(min(Nurangef),3), round(max(Nurangef),3)))
+    print('95%ile Tc range: {}, {}'.format(round(TcCI[0], 3), round(TcCI[1], 3)))
+    print('95%ile nu range: {}, {}'.format(round(nu_1CI[0], 3), round(nu_1CI[1], 3)))
+    print('Cc: {} [{}, {}]'.format(round(Tcfinal,3), round(TcCI[0], 3), round(TcCI[1], 3)))
+    print('nu: {} [{}, {}]'.format(round(Nufinal,3), round(nu_1CI[0], 3), round(nu_1CI[1], 3)))
+    #solution = best_main
 
     solution = np.median(solutions, axis=0)
-    print("Median solution"+str(solution))
-    #print("Best solution cost/pt: "+str(pop.get_f()[pop.best_idx()]/len(Lambda)))
-    #print("Best solution cost/pt: "+str(np.min(archi.get_champions_f())/len(Lambda)))
+    print("Solution"+str(solution))
 
 
     print('n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I))
@@ -278,6 +291,7 @@ if __name__ == '__main__':
 
     plt.figure()
     plt.hist(Nurange, label=r'$\nu$', color='#1a1af980')
+    plt.hist(Tcrange, label=r'$c_c$', color='r')
     plt.xlabel(r'$\nu$')
     plt.ylabel('counts')
     def plotScalingFunc(T, L, args):
