@@ -270,7 +270,7 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	#Performs the actual localization length and conductance calculations
 	eps_N=100000000000
 	Lz=0 #running length
-	n_i=5 #number of steps between orthogonalizations. Only an initial value, will change dynamically
+	n_i=5 #number of steps between orthogonalizations
 	n_i_min=5 #Set n_i_min=n_i if you want to force n_i
 	Nr=100 #number of T matrices to generate Q0 with
 	
