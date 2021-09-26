@@ -96,7 +96,8 @@ if len(sys.argv) > 1:
     window_offset = float(sys.argv[3])
     window_width = float(sys.argv[4])
 
-filename  = cfg.datafilename(datafile)
+
+filename  = cfg.datafilename(datafile)#wrapper required
 input = np.array(openfile(filename))
 
 Lrange = np.unique(input[:, 0])
@@ -254,7 +255,7 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     #A force_bounds ignores the boundaries
     #cmaes is the gold standard of fitting
     
-    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=True))
+    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
 
     #pop = pg.population(prob, 100)
     #algo.set_verbosity(100)
@@ -407,8 +408,9 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     exet=str("%.2fs" % (endt-startt))
     print('execution time: ', exet)
 
-    nuval=round(solution[1],10)
-    cc=round(solution[0],10)
+    nuval=round(solution[1],2)
+    cc=round(solution[0],2)
+    print(nuval)
     #plt.title
 
 

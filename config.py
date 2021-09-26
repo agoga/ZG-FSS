@@ -1,3 +1,12 @@
+#tO use this config file to output files with particular name to the output folder
+#1) cfg.datafilename(   - This must be called as it sets the output file name/set name
+#2) cfg.savecsv()       - To store any data, will use the set name and will append
+#3) cfg.runfilename(    - This gives you a unique filename, you should pass this a descriptive
+#                         file name, ex. 'nu_%s--O_%s-W_%s' and it will not overwrite previous
+
+
+
+
 import os
 from datetime import datetime
 import random
@@ -56,8 +65,6 @@ def datafilename(fn):
     #<-- absolute dir the script is in
     #data_dir=os.path.abspath(os.path.join(script_dir, os.pardir))
     #filename="D:\My Documents\Zimanyi Group\Kinetic Disorder\ZG-FSS\data\" + str(fn)
-
-    
 
     setdir =os.path.join(scriptdir,outputdir+setname)
     if os.path.exists(setdir) is not True:
@@ -134,8 +141,14 @@ def savecsv(data):
         csv_writer=writer(fd)
         csv_writer.writerow(data)
 
-    return data
+    return data 
 
+def createPlotTitle(W=None, E=None, cost_PP=None, execution_time=None, 
+        crit_c=None, nu_val=None, window_offset=None, window_width=None, t_low=None, t_high=None):
+        title = ''
+        title 
+        title = "cpp:%.2f   %s\n\nCc: %s - nu: %f - offset: %.2f - width: %.2f" % (costpp,exet,cc, nuval, window_offset,window_width)
+        return title
 '''
 	coupling_matrix_down: The coupling between the nth and n-1th bars/strips.
 	W: Diagonal disorder
