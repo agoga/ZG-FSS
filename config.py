@@ -49,7 +49,6 @@ def dprint(input):
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))] 
-
 def datafilename(fn):
     '''
         Give W and E
@@ -80,8 +79,11 @@ def datafilename(fn):
 
 def setrunfolder(folder):
     global rundir
-    rundir=''
-    rundir = folder
+    
+    rundir =os.path.join(scriptdir,outputdir+folder)
+    if os.path.exists(rundir) is not True:
+        os.mkdir(rundir)
+
 
 def setfilename(identifier=''):
     global setdir
@@ -131,9 +133,12 @@ def runfilename(identifier=''):
 
     return(uniquefile(os.path.join(rundir, identifier)))
 
-def savecsv(data):
-    global runname
-    csvfilename=setfilename(setname+'.csv')
+def savecsv(data,folder=None):
+    global rundir
+    if folder is None:
+        folder = setname
+
+    csvfilename=setfilename(rundir+'.csv')
     #data=[now.strftime("%D %H:%M")] + data
 
     #data=runname+','+data+''

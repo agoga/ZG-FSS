@@ -14,6 +14,7 @@ import pygmo as pg
 import time
 from datetime import datetime
 
+#testing
 
 now = datetime.now()
 startt=time.time()
@@ -70,8 +71,8 @@ if show is False:
     plt.ioff()
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
-crit_bound_lower, crit_bound_upper = 0.69, 0.88 # critical value bounds
-nu_bound_lower, nu_bound_upper = 1.05, 1.7  # nu bounds
+crit_bound_lower, crit_bound_upper = 0.60, 0.9 # critical value bounds
+nu_bound_lower, nu_bound_upper = 1.05, 2.1  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
 
@@ -83,7 +84,7 @@ m_I = 1
 
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
-datafile='E6W16MINZ3MM.txt'
+datafile='offdiagE6W15.txt'
 
 window_center = 0.89
 window_offset = 0.00#  distance from window center to near edge of window
