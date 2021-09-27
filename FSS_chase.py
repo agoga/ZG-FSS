@@ -196,6 +196,7 @@ def compute_c_nu():
     print('c-nu')
 
     outputfile = cfg.datafilename('offdiagE6W10.txt')
+    
     output = openfile(outputfile)
 
     y_data = []
@@ -250,7 +251,7 @@ def compute_c_nu():
     plt.xlabel('c')
     plt.ylabel(r'$\lambda_M$/M')
     plt.legend(loc=2)
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
     plt.show()
 
     nu_range = np.linspace(1, 1.6, 20)
@@ -273,8 +274,7 @@ def compute_c_nu():
                 best_c = c_crit
     #
 
-    print(best_nu)
-    print(best_c)
+    print('Cc= %.2f -- Nu= %.2f ' % (best_nu,best_c))
 
     # best_c=.6329
     # best_nu=1.431
@@ -293,7 +293,7 @@ def compute_c_nu():
     plt.plot(nu_range, loss_fcn)
     plt.ylabel('loss function')
     plt.xlabel(r'$\nu$')
-    plt.savefig(cfg.outputfilename())
+    plt.savefig(cfg.runfilename(outputfile + '.pdf'))
     plt.show()
 
     # best_c=.306
@@ -315,7 +315,7 @@ def compute_c_nu():
     plt.ylabel(r'$\Lambda$')
     plt.yscale('log')
     plt.xscale('log')
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
     plt.show()
     # plt.ylabel(r'$\Lambda/L$')
 
@@ -325,7 +325,6 @@ def compute_W_nu():
     outputfile = 'DD.txt'
 
     output = openfile(outputfile)
-
 
 ###ADAM###
     y_data = []
@@ -408,7 +407,7 @@ def compute_W_nu():
     plt.ylabel('lam')
     plt.yscale('log')
     plt.xscale('log')
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename())
     # plt.ylabel(r'$\Lambda/L$')
 
 
@@ -505,7 +504,7 @@ def compute_W_s():
     # plt.xlabel(r'$tL^{1/\nu}$')
     plt.xlabel(r'$tL^{\nu}$')
     plt.ylabel('g')
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename())
     # plt.yscale('log')
     # plt.xscale('log')
     # plt.ylabel(r'$\Lambda/L$')
@@ -561,7 +560,7 @@ def compute_c_s():
     plt.xlabel('c')
     plt.ylabel(r'$\lambda_M$/M')
     plt.legend(loc=2)
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename())
     plt.show()
 
     nu_range = np.linspace(1.0, 1.6, 100)
@@ -625,7 +624,7 @@ def compute_c_s():
     # plt.xlabel(r'$tL^{1/\nu}$')
     plt.xlabel(r'$tL^{{1/s}}$')
     plt.ylabel(r'$g$')
-    plt.savefig(cfg.outputfilename())
+    #plt.savefig(cfg.runfilename())
     # plt.yscale('log')
     # plt.xscale('log')
     # plt.ylabel(r'$\Lambda/L$')
@@ -639,5 +638,5 @@ E_list = [-6.5, -6, -5, -4, -2, 0, 2, 4, 5, 6, 6.5]
 plt.plot(E_list, nu_list, marker='*')
 plt.ylabel(r'$\nu$')
 plt.xlabel('E')
-plt.savefig(cfg.outputfilename())
+#plt.savefig(cfg.runfilename())
 plt.show()

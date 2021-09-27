@@ -1,3 +1,5 @@
+#ultimately multiplies random matricies and gets their eigenvalue(Lyapunov exponent)
+
 import numpy as np
 import concurrent.futures
 import time
@@ -313,12 +315,14 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	
 	cnt=0
 	while eps_N>eps or Lz<min_Lz:
+		#@TODO ADAM this is the meat of the code
 		Umatbackup = Umat #In case error gets too big
 		Lzbackup = Lz
 		coupling_matrix_down_backup = coupling_matrix_down
 		
 		M_ni=Umat
 		
+		#@TODO this is notes sept 14
 		for i in range(n_i):
 			T, coupling_matrix_down = Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 			M_ni=np.matmul(M_ni,T)
@@ -333,7 +337,8 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 		e_a=e_a+np.square(np.log(w_a_norm))
 		
 		#D_i.append(1/n_i*np.log(w_a_norm))
-		
+
+		#@TODO this is the meat
 		
 		Lz=Lz+n_i
 		xi_a=d_a/Lz #these are the lyapunov exponents
