@@ -12,7 +12,11 @@ import config as cfg
 import logging as log
 #fmt="%(funcName)s():%(lineno)i: %(message)s %(levelname)s"
 #log.basicConfig(level=args.log_level, format=fmt)
+show=False
 
+def showplt(plt, show):
+    if show:
+        plt.show()
 
 # region
 def openfile(filename):
@@ -53,11 +57,15 @@ def checkfit(xdata, ydata):
                     del_x = base_curve_x[k+1]-base_curve_x[k]
                     del_y = base_curve_y[k+1]-base_curve_y[k]
                     slope = del_y/del_x
-                    for n in range(len(xdata[j])):
+                    for n in range(len(xdata[j])):#@TODO assuming that length is same for xdata ydata 
                         if xdata[j][n] < base_curve_x[k+1] and xdata[j][n] > base_curve_x[k]:
                             interpolation_dist = xdata[j][n]-base_curve_x[k]
-                            base_y_compare = base_curve_y[k] + \
-                                slope*interpolation_dist
+                            base_y_compare = base_curve_y[k] + slope*interpolation_dist
+
+                            #print('len: %f, %f, %f, %f, %f, %f' % (i, j, k, n, len(ydata),len(ydata[j])))
+                            #if n >= len(ydata[j]):
+                                #print(ydata[j])
+                                #print(xdata[j])
                             dif = base_y_compare-ydata[j][n]
                             scale = base_y_compare+ydata[j][n]
                             error += dif**2/scale**2
@@ -191,13 +199,12 @@ raw_data = []
 # endregion
 
 
-def compute_c_nu():
+def compute_c_nu(data):
     log.info("%(funcName)s")
-    print('c-nu')
 
-    outputfile = cfg.datafilename('offdiagE6W10.txt')
-    
-    output = openfile(outputfile)
+    datafile = cfg.datafilename(data)
+    #mis-named previously, should be data @TODO fix
+    output = openfile(datafile)
 
     y_data = []
     L_list = []
@@ -245,20 +252,14 @@ def compute_c_nu():
 
         i += 1
 
-    for i in range(len(y_data)):
-
-        plt.plot(x_data, y_data[i], label='M= ' + str(L_list[i]))
-    plt.xlabel('c')
-    plt.ylabel(r'$\lambda_M$/M')
-    plt.legend(loc=2)
-    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
-    plt.show()
-
-    nu_range = np.linspace(1, 1.6, 20)
-    c_range = np.linspace(.7, .8, 20)
+    
+    #@TODO ranges
+    nu_range = np.linspace(.5, 2, 20)
+    c_range = np.linspace(0, 1, 100)
 
     minerror = 10000000
     best_nu = 1
+    print()
     for nu in nu_range:
         for c_crit in c_range:
             scaled_xs = []
@@ -267,6 +268,7 @@ def compute_c_nu():
                 for j in range(len(x_data)):
                     scaled_xj = (x_data[j]-c_crit)*L_list[i]**(1/nu)
                     scaled_xs[i].append(scaled_xj)
+            
             error = checkfit(scaled_xs, y_data)
             if error < minerror:
                 minerror = error
@@ -274,7 +276,26 @@ def compute_c_nu():
                 best_c = c_crit
     #
 
-    print('Cc= %.2f -- Nu= %.2f ' % (best_nu,best_c))
+    
+    folder='\chaseruns'
+    setname=data.removesuffix('.txt')
+    cfg.setrunfolder(folder)
+    print('Cc= %.2f -- Nu= %.2f ' % (best_c,best_nu))
+    fname='%s - nu_%.2f' % (setname,best_nu)
+    plt.title('%s - Cc= %.2f - best nu= %.2f ' % (setname,best_c, best_nu))
+    plt.savefig(cfg.runfilename(fname + '.pdf'))
+    showplt(plt,show)
+
+    datacsv=[setname, best_c,best_nu]
+    cfg.savecsv(datacsv)
+    
+    for i in range(len(y_data)):
+        plt.plot(x_data, y_data[i], label='M= ' + str(L_list[i]))
+    plt.xlabel('c')
+    plt.ylabel(r'$\lambda_M$/M')
+    plt.legend(loc=2)
+    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
+    showplt(plt,show)
 
     # best_c=.6329
     # best_nu=1.431
@@ -293,8 +314,8 @@ def compute_c_nu():
     plt.plot(nu_range, loss_fcn)
     plt.ylabel('loss function')
     plt.xlabel(r'$\nu$')
-    plt.savefig(cfg.runfilename(outputfile + '.pdf'))
-    plt.show()
+
+    
 
     # best_c=.306
     # best_nu=1.5
@@ -316,15 +337,15 @@ def compute_c_nu():
     plt.yscale('log')
     plt.xscale('log')
     #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
-    plt.show()
+    showplt(plt,show)
     # plt.ylabel(r'$\Lambda/L$')
 
 
-def compute_W_nu():
+def compute_W_nu(data):
 
-    outputfile = 'DD.txt'
-
-    output = openfile(outputfile)
+    datafile = cfg.datafilename(data)
+    #mis-named previously, should be data @TODO fix
+    output = openfile(datafile)
 
 ###ADAM###
     y_data = []
@@ -407,6 +428,7 @@ def compute_W_nu():
     plt.ylabel('lam')
     plt.yscale('log')
     plt.xscale('log')
+    showplt(plt,show)
     #plt.savefig(cfg.runfilename())
     # plt.ylabel(r'$\Lambda/L$')
 
@@ -561,7 +583,7 @@ def compute_c_s():
     plt.ylabel(r'$\lambda_M$/M')
     plt.legend(loc=2)
     #plt.savefig(cfg.runfilename())
-    plt.show()
+    showplt(plt,show)
 
     nu_range = np.linspace(1.0, 1.6, 100)
     kappa_range = np.linspace(-2, 2, 100)
@@ -629,14 +651,24 @@ def compute_c_s():
     # plt.xscale('log')
     # plt.ylabel(r'$\Lambda/L$')
 
+#compute_c_nu('offdiagE6W15.txt')
+#quit()
 
-compute_c_nu()
+for dataset in os.listdir('data'):
+    try:
+        print('Running ' + dataset)
+        compute_c_nu(dataset)
+    except Exception as e:
+        datacsv=[dataset, 'error']
+        cfg.savecsv(datacsv)
+        print('Something wrong with ' + dataset)
+#compute_W_nu('offdiagE6W16.txt')
 
 
-nu_list = [1.44, 1.43, 1.22, 1.16, 1.17, 1.15, 1.17, 1.16, 1.22, 1.43, 1.44]
-E_list = [-6.5, -6, -5, -4, -2, 0, 2, 4, 5, 6, 6.5]
-plt.plot(E_list, nu_list, marker='*')
-plt.ylabel(r'$\nu$')
-plt.xlabel('E')
+#nu_list = [1.44, 1.43, 1.22, 1.16, 1.17, 1.15, 1.17, 1.16, 1.22, 1.43, 1.44]
+#E_list = [-6.5, -6, -5, -4, -2, 0, 2, 4, 5, 6, 6.5]
+#plt.plot(E_list, nu_list, marker='*')
+#plt.ylabel(r'$\nu$')
+#plt.xlabel('E')
 #plt.savefig(cfg.runfilename())
-plt.show()
+#plt.show()
