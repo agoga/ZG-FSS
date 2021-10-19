@@ -66,7 +66,7 @@ def bootVals(Lambda,L,Tvar,sigma,n):
 
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="../data/offdiagE2W6.txt"
+filename="../data/offdiagE5W10.txt"
 minL = 8
 
 
@@ -76,10 +76,10 @@ n_I = 1
 m_R = 2
 m_I = 1
 
-resamplesize = 60  # number of resamples
-numCPUs = 6  # number of processors to use. Each one will do a resample
+resamplesize = 24  # number of resamples
+numCPUs = 3 # number of processors to use. Each one will do a resample
 
-window_width = 0.06 #width of window
+window_width = 1.0 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
 window_center = 0.06
 
@@ -105,12 +105,12 @@ W = data[:, 1]
 c = data[:, 2]
 sigma = data[:, 4] #uncomment for MacKinnon
 
-crit_bound_lower, crit_bound_upper = 0.06, 0.064  # critical value bounds
+crit_bound_lower, crit_bound_upper = 0.4, 0.6  # critical value bounds
 #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
-nu_bound_lower, nu_bound_upper = 0.8, 1.9  # nu bounds
-y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
-param_bound_lower, param_bound_upper = -100.0, 100.1  # all other bounds
-use_bounds = False
+nu_bound_lower, nu_bound_upper = 0.8, 2.2  # nu bounds
+y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
+param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
+use_bounds = True
 
 # set the driving parameter
 Tvar = c
