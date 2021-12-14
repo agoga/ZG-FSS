@@ -81,6 +81,7 @@ def setrunfolder(folder):
     global rundir
     
     rundir =os.path.join(scriptdir,outputdir+folder)
+    #print('outdir '+str(outputdir))
     if os.path.exists(rundir) is not True:
         os.mkdir(rundir)
 
@@ -133,17 +134,25 @@ def runfilename(identifier=''):
 
     return(uniquefile(os.path.join(rundir, identifier)))
 
-def savecsv(data,folder=None):
+def savecsv(data,col_names=None,folder=None):
     global rundir
     if folder is None:
         folder = setname
 
-    csvfilename=setfilename(rundir+'.csv')
+
+
+    csvfilename=setfilename(rundir+setname+'.csv')
     #data=[now.strftime("%D %H:%M")] + data
+
+    file_exists = path.isfile(csvfilename)
 
     #data=runname+','+data+''
     with open(csvfilename,'a',newline='', encoding='utf-8') as fd:
         csv_writer=writer(fd)
+
+        if file_exists is False and col_names is not None:
+            csv_writer.writerow(col_names)
+            
         csv_writer.writerow(data)
 
     return data 

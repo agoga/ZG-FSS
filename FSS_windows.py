@@ -32,13 +32,17 @@ def openfile(filename):
     for line in f:
         if line:
             strlist = line.split()
+            slen = len(strlist)
             L = float(strlist[4][:-1])
             W = float(strlist[5][:-1])
-            c = float(strlist[7][:-1])
-            lyap = float(strlist[10][1:])
-            sem = float(strlist[11][:-1])
+
+            if slen == 16:
+                c = float(strlist[10][:-1])
+                lyap = float(strlist[13][1:])
+                sem = float(strlist[14][:-1])
             outputlst.append([L, W, c, lyap, sem])
     return outputlst
+
 def openfileZeke(filename):
     f = open(filename, "r")
     outputlst = []
@@ -64,14 +68,16 @@ fs = 18 #font size
 #small L and finite size effect
 minL = 8#slice off lowest L, tip of the data
 #@TODO adam fix a loop for ranges 
-repeats=100
+repeats=1000
 
 show=False
+forceBounds=False
+
 if show is False:
     plt.ioff()
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
-crit_bound_lower, crit_bound_upper = 0.60, 0.9 # critical value bounds
+crit_bound_lower, crit_bound_upper = 0.01, 1 # critical value bounds
 nu_bound_lower, nu_bound_upper = 1.05, 2.1  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
@@ -84,11 +90,11 @@ m_I = 1
 
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
-datafile='offdiagE6W15.txt'
+datafile='E0W10boxtest_tLtHbox_1.txt'
 
-window_center = 0.89
+window_center = 0.77
 window_offset = 0.00#  distance from window center to near edge of window
-window_width = 1.0 # width of window
+window_width = 1 # width of window
 
 #@TODO fire myself for param loop 
 if len(sys.argv) > 1:
@@ -256,7 +262,7 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     #A force_bounds ignores the boundaries
     #cmaes is the gold standard of fitting
     
-    algo = pg.algorithm(pg.cmaes(gen=1000, force_bounds=False))
+    algo = pg.algorithm(pg.cmaes(gen=repeats, force_bounds=forceBounds))
 
     #pop = pg.population(prob, 100)
     #algo.set_verbosity(100)
@@ -416,9 +422,10 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
 
 
     #cost per point @todo
+    minL = 8#slice off lowest L, tip of the data
 
-    #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
-    datacsv=[now.strftime("%D %H:%M"), exet.removesuffix('s'), cc, costpp, window_center, window_width, window_offset,nuval]
+
+    
     ostr=str(float(window_offset)).split('.')[1]
     wstr=str(float(window_width)).split('.')[1]
     if nuval > 1:
@@ -427,10 +434,23 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
         nustr=str(round(nuval,3)).split('.')[1]
 
     fname='nu_%s--O_%s-W_%s' % (nustr,ostr,wstr)
-    cfg.savecsv(datacsv)
+    
 
     if window_offset != 0:
         cc='--'
     fig1.suptitle(datafile.removesuffix('.txt')+ "  cpp:%.2f   %s\n\nCc: %s - nu: %f - offset: %.2f - width: %.2f" % (costpp,exet,cc, nuval, window_offset,window_width))
-    fig1.savefig(cfg.runfilename(fname + '.pdf'))
+    run_file_name=cfg.runfilename(fname + '.pdf')
+    fig1.savefig(run_file_name)
+
+
+    #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
+    csv_column_names=['Date','Run time','Cc','Nu','Cost per point','Window center',
+                    'Window width','Window offset','Repeats','Forced bounds?','Crit bound lower',
+                    'Crit bound upper','Nu bound lower','Nu bound upper','n_R','n_I','m_R','m_I','Plot pdf']
+
+    datacsv=[now.strftime("%D %H:%M"), exet.removesuffix('s'), cc, nuval, costpp, window_center, window_width, 
+    window_offset,repeats,forceBounds,crit_bound_lower,crit_bound_upper,nu_bound_lower,nu_bound_upper,n_R,n_I,m_R,m_I,run_file_name]
+    cfg.savecsv(datacsv,csv_column_names)
+
+
     showplt(plt,show)
