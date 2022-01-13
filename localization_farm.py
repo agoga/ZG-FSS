@@ -62,16 +62,21 @@ def makeTM(H,E):
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
 
-def newTRan(tDist,tL=True,tH=True):
-	if tDist[0][0]==tDist[0][1]:
-		tL=tDist[0][0]
+def newTRan(tDist,gaussian=True):
+	newTRan.ranCounter += 1
+	if gaussian:
+		tL=np.random.normal(tDist[0][0],tDist[0][1])
+		tH=np.random.normal(tDist[1][0],tDist[1][1])
 	else:
-		tL=np.random.uniform(tDist[0][0],tDist[0][1])
+		if tDist[0][0]==tDist[0][1]:
+			tL=tDist[0][0]
+		else:
+			tL=np.random.uniform(tDist[0][0],tDist[0][1])
 
-	if tDist[1][0]==tDist[1][1]:
-		tH=tDist[1][0]
-	else:
-		tH=np.random.uniform(tDist[1][0],tDist[1][1])
+		if tDist[1][0]==tDist[1][1]:
+			tH=tDist[1][0]
+		else:
+			tH=np.random.uniform(tDist[1][0],tDist[1][1])
 
 	return [tL,tH]
 
@@ -290,6 +295,8 @@ def Create_Transfer_Matrix(coupling_matrix_down,W,tDist,fraction,size,E,dim):
 	return [transfer_matrix,coupling_matrix_up]
 
 def doCalc(eps,min_Lz,L,W,tDist,c,E,dim):
+	#@TODO sigma
+	
 	#eps: desired error
 	#min_Lz: At least this many slices will be computed, no matter what
 	#L, V, W: size, potential, diagonal disorder
@@ -448,6 +455,7 @@ def threadHelper(pack):
 	W=pack[4]
 	t_low=pack[5]
 	c=pack[6]
+	#@TODO sigma
 	E=pack[7]
 	dim=pack[8]
 	av=pack[9]
@@ -464,10 +472,10 @@ def test_harness():
 	eps=1
 	min_Lz=500000
 	
-	tlbot=0
-	tltop=.5
-	thbot=1
-	thtop=10
+	t_low_bot=0
+	t_low_top=.5
+	t_high_bot=1
+	t_high_top=10
 	W=10
 	E=0
 	dim=3
@@ -476,7 +484,7 @@ def test_harness():
 	L=4
 	c=.5
 
-	tDist=[[tlbot,tltop],[thbot,thtop]]
+	tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
 	params=(eps,min_Lz,L,W,tDist,c,E,dim)
 	B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
 	ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
@@ -501,7 +509,10 @@ name=sys.argv[13]
 
 tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
 
+newTRan.ranCounter=0
+
 params=(eps,min_Lz,L,W,tDist,c,E,dim)
 B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
 ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
 save(params,ret,avg,name)
+print('num called: ' + str(newTRan.ranCounter))

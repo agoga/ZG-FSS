@@ -38,9 +38,10 @@ def openfile(filename):
 
             if slen == 16:
                 c = float(strlist[10][:-1])
+                gaus = float(strlist[7][:-2])
                 lyap = float(strlist[13][1:])
                 sem = float(strlist[14][:-1])
-            outputlst.append([L, W, c, lyap, sem])
+            outputlst.append([L, W, c, lyap, sem, gaus])
     return outputlst
 
 def openfileZeke(filename):
@@ -90,9 +91,9 @@ m_I = 1
 
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
-datafile='E0W10boxtest_tLtHbox_1.txt'
+datafile='E0W10normal_07_01.txt'
 
-window_center = 0.77
+window_center = 1
 window_offset = 0.00#  distance from window center to near edge of window
 window_width = 1 # width of window
 
@@ -110,9 +111,9 @@ input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
+gausrange= np.unique(input[:, 5])
 
-
-data = input[:, 0:5]  # L, W, c, LE
+data = input[:, 0:6]  # L, W, c, LE
 data[:, 3] = 1 / (data[:, 0] * data[:, 3])  # L, W, c, normalized localization length
 
 # sort according to L
@@ -127,8 +128,10 @@ L = data[:, 0]
 W = data[:, 1]
 c = data[:, 2]
 sigma = data[:, 4] #uncomment for MacKinnon
+gaus = data[:,5]
+
 # set the driving parameter
-Tvar = c
+Tvar = gaus
 
 #when L is
 
