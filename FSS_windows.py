@@ -19,6 +19,7 @@ from datetime import datetime
 now = datetime.now()
 startt=time.time()
 
+
 #parser = argparse.ArgumentParser(description='Window args')
 #parser.add_argument("in_wc",type=int,...,required=False)
 #parser.add_argument("in_ww",type=int,required=False)
@@ -36,11 +37,16 @@ def openfile(filename):
             L = float(strlist[4][:-1])
             W = float(strlist[5][:-1])
 
-            if slen == 16:
+            if slen == 16: #NEW Adam version with distribution vals
                 c = float(strlist[10][:-1])
                 gaus = float(strlist[7][:-2])
                 lyap = float(strlist[13][1:])
                 sem = float(strlist[14][:-1])
+            else:
+                c = float(strlist[7][:-1])
+                lyap = float(strlist[10][1:])
+                sem = float(strlist[11][:-1])
+                gaus=None
             outputlst.append([L, W, c, lyap, sem, gaus])
     return outputlst
 
@@ -60,22 +66,22 @@ def openfileZeke(filename):
 def showplt(plt, show):
     if show:
         plt.show()
-fs = 18 #font size
+
 
 
 #filename="offdiagE6W10.txt"#dataset from localization script, up of box
 
+
 #A 
+fs = 18 #font size
 #small L and finite size effect
 minL = 8#slice off lowest L, tip of the data
 #@TODO adam fix a loop for ranges 
 repeats=1000
 
-show=False
-forceBounds=False
+show=False#calls plt.ioff() if false
+forceBounds=False#forces the bounds below to be used or ignored
 
-if show is False:
-    plt.ioff()
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
 crit_bound_lower, crit_bound_upper = 0.01, 1 # critical value bounds
@@ -91,11 +97,17 @@ m_I = 1
 
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
-datafile='E0W10normal_07_01.txt'
+
+datafile='E0W10boxtest_tHi1_5.txt'#ALSO SWAP NEW DATA VAR
+newData=False #if this uses the new localization output template which includes parameters for distributions of tH and tL
 
 window_center = 1
 window_offset = 0.00#  distance from window center to near edge of window
 window_width = 1 # width of window
+
+
+if show is False:
+    plt.ioff()
 
 #@TODO fire myself for param loop 
 if len(sys.argv) > 1:
@@ -111,9 +123,14 @@ input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
-gausrange= np.unique(input[:, 5])
+gausrange = 0
+ 
+if newData :#input[5] is not None:
+    data = input[:, 0:6]# L, W, c, LE 
+    gausrange= np.unique(input[:, 5])
+else:
+    data = input[:, 0:5] #
 
-data = input[:, 0:6]  # L, W, c, LE
 data[:, 3] = 1 / (data[:, 0] * data[:, 3])  # L, W, c, normalized localization length
 
 # sort according to L
@@ -128,10 +145,11 @@ L = data[:, 0]
 W = data[:, 1]
 c = data[:, 2]
 sigma = data[:, 4] #uncomment for MacKinnon
-gaus = data[:,5]
+Tvar = c# set the driving parameter
 
-# set the driving parameter
-Tvar = gaus
+if newData:
+    gaus = data[:,5]
+    Tvar = gaus
 
 #when L is
 
@@ -153,6 +171,7 @@ if numBoot==1:
     bootSize=1
 else:
     bootSize = 0.9 #fraction of data to keep
+
 bootResults=[]
 Lambda_restart = Lambda
 L_restart = L
@@ -280,7 +299,13 @@ if __name__ == '__main__':# or len(sys.argv) > 1:
     #print(pop)
 
     #solution = pop.get_x()[pop.best_idx()]
+    numb= np.amin(archi.get_champions_f())
+    print('n: ' + str(numb))
+    print('champ x: ' + str(archi.get_champions_x()))
+    print('champ f: ' + str(archi.get_champions_f()))
+    #print(archi.get_champions_x()[2])
 
+    #@TODO ADAM bad hack
     solution = archi.get_champions_x()[int(np.amin(archi.get_champions_f()))]
 
 
