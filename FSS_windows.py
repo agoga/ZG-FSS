@@ -36,18 +36,22 @@ def openfile(filename):
             slen = len(strlist)
             L = float(strlist[4][:-1])
             W = float(strlist[5][:-1])
-
+            gaus=None
+            cen=None
             if slen == 16: #NEW Adam version with distribution vals
                 c = float(strlist[10][:-1])
+                #example of gaus/cen[[0.35, 0.03],
                 gaus = float(strlist[7][:-2])
+                cen = float(strlist[6][2:-1])
+
                 lyap = float(strlist[13][1:])
                 sem = float(strlist[14][:-1])
             else:
                 c = float(strlist[7][:-1])
                 lyap = float(strlist[10][1:])
                 sem = float(strlist[11][:-1])
-                gaus=None
-            outputlst.append([L, W, c, lyap, sem, gaus])
+                
+            outputlst.append([L, W, c, lyap, sem, gaus, cen])
     return outputlst
 
 def openfileZeke(filename):
@@ -80,6 +84,9 @@ minL = 8#slice off lowest L, tip of the data
 repeats=1000
 
 show=False#calls plt.ioff() if false
+debug=False#turns
+
+
 forceBounds=False#forces the bounds below to be used or ignored
 
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
@@ -89,6 +96,7 @@ nu_bound_lower, nu_bound_upper = 1.05, 2.1  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
 
+#@TODO Adam, ask mike
 # orders of expansion
 n_R = 3
 n_I = 1
@@ -98,8 +106,8 @@ m_I = 1
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
 
-datafile='E0W10boxtest_tHi1_5.txt'#ALSO SWAP NEW DATA VAR
-newData=False #if this uses the new localization output template which includes parameters for distributions of tH and tL
+datafile='E0W10normal-varyc-1.txt'#ALSO SWAP NEW DATA VAR
+newData=True #if this uses the new localization output template which includes parameters for distributions of tH and tL
 
 window_center = 1
 window_offset = 0.00#  distance from window center to near edge of window
@@ -123,11 +131,13 @@ input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
-gausrange = 0
- 
+gausrange = 0#for using sigma of distribution as driving
+cenrange = 0#for using center of distribution
+
 if newData :#input[5] is not None:
-    data = input[:, 0:6]# L, W, c, LE 
+    data = input[:, 0:7]# L, W, c, LE 
     gausrange= np.unique(input[:, 5])
+    cenrang=np.unique(input[:, 6])
 else:
     data = input[:, 0:5] #
 
@@ -135,6 +145,8 @@ data[:, 3] = 1 / (data[:, 0] * data[:, 3])  # L, W, c, normalized localization l
 
 # sort according to L
 data = data[np.argsort(data[:, 0])]
+
+
 #omit L less than minL to control finite size effects
 data = data[data[:,0]>=minL]
 data = data[np.abs(data[:,2]-window_center)<=window_offset+window_width]
@@ -148,17 +160,14 @@ sigma = data[:, 4] #uncomment for MacKinnon
 Tvar = c# set the driving parameter
 
 if newData:
+    cen = data[:,6]
     gaus = data[:,5]
-    Tvar = gaus
+    Tvar = cen#gaus
 
 #when L is
 
 numBoot = len(Lambda)//4
 numBoot = 1
-
-
-
-
 
 if n_I > 0:
     numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
