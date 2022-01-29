@@ -63,7 +63,6 @@ def makeTM(H,E):
 	return T.astype(np.float64)
 
 def newTRan(tDist,gaussian=True):
-	newTRan.ranCounter += 1
 	if gaussian:
 		tL=np.random.normal(tDist[0][0],tDist[0][1])
 		tH=np.random.normal(tDist[1][0],tDist[1][1])
@@ -79,6 +78,7 @@ def newTRan(tDist,gaussian=True):
 			tH=np.random.uniform(tDist[1][0],tDist[1][1])
 
 	return [tL,tH]
+#newTRan.ranCounter=0
 
 def Create_Transfer_Matrix(coupling_matrix_down,W,tDist,fraction,size,E,dim):
 	'''
@@ -99,73 +99,6 @@ def Create_Transfer_Matrix(coupling_matrix_down,W,tDist,fraction,size,E,dim):
 
 	#fraction=c in Z group
 	w=0 #width of off diagonal disorder distributions. In binary model, this is 0
-	
-	if dim==2:
-		
-		#coupling_up is used to form the matrix that couples the nth strip or bar to the n+1th strip or bar
-		coupling_up=[]
-		for i in range(size):
-			#fraction determines the connectivity (fraction of good links) on the lattice
-			if np.random.random()<fraction:
-				random_num=np.random.random()*w-w/2
-				coupling_up.append(tH+random_num)
-			else:
-				small_w=w/10
-				random_num=np.random.random()*small_w-small_w/2
-				coupling_up.append(tL+random_num)
-				
-		coupling_matrix_up = np.diag(coupling_up)
-		
-		coupling_up_inv=la.inv(coupling_matrix_up)
-		inner_strip_matrix=np.zeros((size,size))
-		
-		#generate the intra-strip hamiltonian
-		for i in range(size):
-			for j in range(size):
-				#First the on-site, diagonal pieces
-				if i==j:
-					inner_strip_matrix[i][j]=E-(np.random.random()*W-W/2)
-				#inner_strip_matrix[i][j]=E-(np.random.normal(0,np.sqrt(W/2)))
-				#Next, the offdiagonal pieces
-				if (i==(j+1) and (i)%size!=0) or (i==(j-1) and (i+1)%size!=0):
-					if np.random.random()<fraction:
-						if inner_strip_matrix[i][j]==0 and size!=2:
-							random_num=np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-						if inner_strip_matrix[i][j]==0 and size==2:
-							random_num=np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(2*(tH+random_num))
-							inner_strip_matrix[j][i]=-(2*(tH+random_num))
-					else:
-						if inner_strip_matrix[i][j]==0:
-							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL+random_num
-							inner_strip_matrix[j][i]=-tL+random_num
-				#This last one ensures periodic boundary conditions
-				if i==(j+size-1) or i==(j-size+1):
-					if np.random.random()<fraction:
-						if inner_strip_matrix[i][j]==0:
-							random_num=np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-	
-					else:
-						if inner_strip_matrix[i][j]==0:
-							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL+random_num
-							inner_strip_matrix[j][i]=-tL+random_num
-							
-				
-		#These four pieces combine into the transfer matrix
-		upper_left=np.matmul(coupling_up_inv,inner_strip_matrix)
-		upper_right=-np.matmul(coupling_up_inv,coupling_matrix_down)
-		lower_left=np.identity(size)
-		lower_right=np.zeros((size,size))
-		
-		transfer_matrix=np.block([[upper_left,upper_right],[lower_left,lower_right]])
 		
 	if dim==3:
 		#To do the same thing in 3D, we just make a bar as the intra-strip hamiltonian rather than a strip
@@ -509,10 +442,10 @@ name=sys.argv[13]
 
 tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
 
-newTRan.ranCounter=0
+
 
 params=(eps,min_Lz,L,W,tDist,c,E,dim)
 B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
 ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
 save(params,ret,avg,name)
-print('num called: ' + str(newTRan.ranCounter))
+#save(L,' num ran calls:'+str(newTRan.ranCounter)+' - ',1,"ranTCalls.txt")
