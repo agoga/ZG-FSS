@@ -57,8 +57,8 @@ def checkfit(xdata, ydata):
                     del_x = base_curve_x[k+1]-base_curve_x[k]
                     del_y = base_curve_y[k+1]-base_curve_y[k]
                     slope = del_y/del_x
-                    for n in range(len(xdata[j])):#@TODO assuming that length is same for xdata ydata 
-                        if xdata[j][n] < base_curve_x[k+1] and xdata[j][n] > base_curve_x[k]:
+                    for n in range(len(xdata[j])):#@TODO assuming that length is same for xdata ydata  ##last condition below added by Adam
+                        if xdata[j][n] < base_curve_x[k+1] and xdata[j][n] > base_curve_x[k]:# and n < len(ydata[j]):
                             interpolation_dist = xdata[j][n]-base_curve_x[k]
                             base_y_compare = base_curve_y[k] + slope*interpolation_dist
 
@@ -205,7 +205,6 @@ def compute_c_nu(data):
     datafile = cfg.datafilename(data)
     #mis-named previously, should be data @TODO fix
     output = openfile(datafile)
-
     y_data = []
     L_list = []
     c_list = []
@@ -224,6 +223,11 @@ def compute_c_nu(data):
     L_list.sort()
     c_list.sort()
     W_list.sort()
+
+    cmax = max(c_list)
+    cmin = min(c_list)
+
+    print(c_list)
 
     x_data = c_list
 
@@ -252,14 +256,13 @@ def compute_c_nu(data):
 
         i += 1
 
-    
     #@TODO ranges
-    nu_range = np.linspace(.5, 2, 20)
-    c_range = np.linspace(0, 1, 100)
+    nu_range = np.linspace(1,1.8, 100)
+    c_range = np.linspace(cmin, cmax, 50)
 
     minerror = 10000000
     best_nu = 1
-    print()
+
     for nu in nu_range:
         for c_crit in c_range:
             scaled_xs = []
@@ -286,7 +289,7 @@ def compute_c_nu(data):
     plt.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)
 
-    datacsv=[setname, best_c,best_nu]
+    datacsv=[setname, round(best_c,2),round(best_nu,2)]
     cfg.savecsv(datacsv)
     
     for i in range(len(y_data)):
@@ -294,7 +297,7 @@ def compute_c_nu(data):
     plt.xlabel('c')
     plt.ylabel(r'$\lambda_M$/M')
     plt.legend(loc=2)
-    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
+    plt.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)
 
     # best_c=.6329
@@ -314,7 +317,7 @@ def compute_c_nu(data):
     plt.plot(nu_range, loss_fcn)
     plt.ylabel('loss function')
     plt.xlabel(r'$\nu$')
-
+    
     
 
     # best_c=.306
@@ -336,7 +339,7 @@ def compute_c_nu(data):
     plt.ylabel(r'$\Lambda$')
     plt.yscale('log')
     plt.xscale('log')
-    #plt.savefig(cfg.runfilename(outputfile + '.pdf'))
+    plt.savefig(cfg.runfilename(fname + '.pdf'))
     showplt(plt,show)
     # plt.ylabel(r'$\Lambda/L$')
 
@@ -651,8 +654,11 @@ def compute_c_s():
     # plt.xscale('log')
     # plt.ylabel(r'$\Lambda/L$')
 
-#compute_c_nu('offdiagE6W15.txt')
-#quit()
+compute_c_nu('offdiagE6W16.txt')
+quit()
+
+
+
 
 for dataset in os.listdir('data'):
     try:

@@ -87,11 +87,12 @@ show=False#calls plt.ioff() if false
 debug=False#turns
 
 
-forceBounds=False#forces the bounds below to be used or ignored
+forceBounds=True#forces the bounds below to be used or ignored
 
 #crit_bound_lower, crit_bound_upper = 16.0, 17.0  # critical value bounds
 #A looking for transition from lower to upper
-crit_bound_lower, crit_bound_upper = 0.01, 1 # critical value bounds
+#@TODO force the crit to be around where we are actually looking.
+crit_bound_lower, crit_bound_upper = 0.55, .75 # critical value bounds
 nu_bound_lower, nu_bound_upper = 1.05, 2.1  # nu bounds
 y_bound_lower, y_bound_upper = -10.0, -0.1  # y bounds
 param_bound_lower, param_bound_upper = -10.0, 10.1  # all other bounds
@@ -106,7 +107,7 @@ m_I = 1
 #@TODO allow multiple files and parameters so we can do logarithmic analysis
 #same W but more precise c values
 
-datafile='E0W10normal-varyc-1.txt'#ALSO SWAP NEW DATA VAR
+datafile='E0W10normal-varyc-cen06.txt'#ALSO SWAP NEW DATA VAR
 newData=True #if this uses the new localization output template which includes parameters for distributions of tH and tL
 
 window_center = 1
