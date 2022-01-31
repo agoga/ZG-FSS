@@ -107,10 +107,11 @@ def makeTM(H,E):
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
 
-def newTRan(tDist,gaussian=True,testing=False):
+def newTRan(tDist,gaussian=True,testing=True):
 	if testing:
 		tL=.5
 		tH=.5
+		return [tL,tH]
 	if gaussian:
 		tL=np.random.normal(tDist[0][0],tDist[0][1])
 		tH=np.random.normal(tDist[1][0],tDist[1][1])
@@ -206,11 +207,11 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 			#@TODO NEW RAN
 			tL,tH=newTRan(tDist)
 			if np.random.random()<fraction:
-				random_num=np.random.normal(0,w)
+				random_num=0#np.random.normal(0,w)
 				coupling_up.append(tH+random_num)
 			else:
 				small_w=w/10
-				random_num=np.random.random()*small_w-small_w/2
+				random_num=0#np.random.random()*small_w-small_w/2
 				coupling_up.append(tL+random_num)
 		
 		coupling_matrix_up = np.diag(coupling_up)
@@ -234,7 +235,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 						#@TODO NEW RAN
 						tL,tH=newTRan(tDist)
 						if inner_strip_matrix[i][j]==0 and size!=2:
-							random_num=np.random.random()*w-w/2
+							random_num=0#np.random.random()*w-w/2
 
 							#Where we have [i][j] we are fixing hopping from i->j same as j->i
 							inner_strip_matrix[i][j]=-(tH+random_num)
@@ -242,7 +243,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 
 						if inner_strip_matrix[i][j]==0 and size==2:
 
-							random_num=np.random.random()*w-w/2
+							random_num=0#np.random.random()*w-w/2
 							inner_strip_matrix[i][j]=-(2*(tH+random_num))
 							inner_strip_matrix[j][i]=-(2*(tH+random_num))
 					else:
@@ -251,7 +252,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 						if inner_strip_matrix[i][j]==0:
 
 							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
+							random_num=0#np.random.random()*small_w-small_w/2
 							inner_strip_matrix[i][j]=-tL + random_num
 							inner_strip_matrix[j][i]=-tL + random_num
 	#			 This last one ensures periodic boundary conditions
@@ -262,7 +263,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 						if inner_strip_matrix[i][j]==0:
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
-							random_num=np.random.random()*w-w/2
+							random_num=0#np.random.random()*w-w/2
 							inner_strip_matrix[i][j]=-(tH+random_num)
 							inner_strip_matrix[j][i]=-(tH+random_num)
 	
@@ -272,7 +273,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
 							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
+							random_num=0#np.random.random()*small_w-small_w/2
 							inner_strip_matrix[i][j]=-tL+random_num
 							inner_strip_matrix[j][i]=-tL+random_num
 							
@@ -282,7 +283,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 						if inner_strip_matrix[i][j]==0:
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
-							random_num=np.random.random()*w-w/2
+							random_num=0#np.random.random()*w-w/2
 							inner_strip_matrix[i][j]=-(tH+random_num)
 							inner_strip_matrix[j][i]=-(tH+random_num)
 	
@@ -291,7 +292,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
 							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
+							random_num=0#np.random.random()*small_w-small_w/2
 							inner_strip_matrix[i][j]=-tL + random_num
 							inner_strip_matrix[j][i]=-tL + random_num
 							
@@ -300,7 +301,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 						if inner_strip_matrix[i][j]==0:
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
-							random_num=np.random.random()*w-w/2
+							random_num=0#np.random.random()*w-w/2
 							inner_strip_matrix[i][j]=-(tH+random_num)
 							inner_strip_matrix[j][i]=-(tH+random_num)
 	
@@ -309,7 +310,7 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 							#@TODO NEW RAN
 							tL,tH=newTRan(tDist)
 							small_w=w/10
-							random_num=np.random.random()*small_w-small_w/2
+							random_num=0#np.random.random()*small_w-small_w/2
 							inner_strip_matrix[i][j]=-tL + random_num
 							inner_strip_matrix[j][i]=-tL+random_num
 							
@@ -660,7 +661,7 @@ def doCalc(eps,min_Lz,L,W,tDist,c,E,dim):
 	return np.array([float(smallestLya), g],dtype=object)
 
 def test_tmatrix(W, tDist, c, L, E, dim):
-	N=L*L
+
 	
 	
 	
@@ -670,7 +671,9 @@ def test_tmatrix(W, tDist, c, L, E, dim):
 	n_i=5 #number of steps between orthogonalizations. Only an initial value, will change dynamically
 	Nr=2 #number of T matrices to generate Q0 with
 	
+	L=3
 	c=1
+	N=L*L
 
 	max_sum_deviation = 10**(-9) #we check this condition every n_i steps
 	
@@ -691,23 +694,21 @@ def test_tmatrix(W, tDist, c, L, E, dim):
 
 	Q0, coupling_matrix_down =genQ0(coupling_matrix_down,W,tDist,c,L,E,dim,Nr)
 	
-	d_a=np.zeros(N,dtype=np.float64)
-	e_a=np.zeros(N,dtype=np.float64)
-	
-	lya=list()
-	glst=list()
 
+	coupling_matrix_down=np.identity(N)
 	CDownOld = coupling_matrix_down
 	CDownNew = coupling_matrix_down
 
+	numTest=1
+
 	np.random.seed(1256)
-	for i in range(10):
+	for i in range(numTest):
 		#print("i: " + str(i))
 		Told, CDownOld = Create_Transfer_Matrix_Old(CDownOld,W,tDist,c,L,E,dim)
 
 
 	np.random.seed(1256)
-	for i in range(10):
+	for i in range(numTest):
 		#print("i: " + str(i))
 		Tnew, CDownNew = Create_Transfer_Matrix(CDownNew,W,tDist,c,L,E,dim)
 		
@@ -716,9 +717,9 @@ def test_tmatrix(W, tDist, c, L, E, dim):
 		print('The same: ' + str(np.array_equal(Tnew,Told)))
 	else:
 		print("Old: ")
-		print(Told)
+		print(Told[0])
 		print("New: ")
-		print(Tnew)
+		print(Tnew[0])
 
 
 
