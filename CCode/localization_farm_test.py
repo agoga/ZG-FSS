@@ -16,9 +16,8 @@ def save(par, return_value, avg, name, time):
 
 def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 	# P(t)= c*delta(t-t_h) + (1-c)*delta(t-t_l)
-	# fraction=c in Z group
 	# Dont use dim==2!
-	# W does nothing
+
 	N = L * L
 	if dim == 3:
 		# generate a diagonal of 1s
@@ -26,7 +25,16 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 		#make <\eps_i>=0 exactly
 		#W_strip = W_strip - np.mean(W_strip)
 
-		coupling_matrix_up = np.diag(np.asarray(W_strip))
+		# coupling_up is used to form the matrix that couples the nth strip or bar to the n+1th strip or bar
+		coupling_up = []
+		for i in range(N):
+			# c determines the connectivity (fraction of good links) on the lattice
+			if np.random.random() < c:
+				coupling_up.append(1.0) #t_hi
+			else:
+				coupling_up.append(t_low)
+
+		coupling_matrix_up = np.diag(coupling_up)
 		coupling_up_inv = np.linalg.inv(coupling_matrix_up)
 
 		# generate the intra-strip hamiltonian
@@ -48,8 +56,7 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 
 		# Transpose it over
 		inner_strip_matrix = inner_strip_matrix + np.transpose(inner_strip_matrix)
-		# Flip the signs
-		inner_strip_matrix = -1 * inner_strip_matrix
+
 		# Now add the diagonal disorder
 		inner_strip_matrix = inner_strip_matrix + np.diag(W_strip)
 
