@@ -1,7 +1,4 @@
-#ultimately multiplies random matricies and gets their eigenvalue(Lyapunov exponent)
-
 import numpy as np
-import concurrent.futures
 import time
 import sys
 import datetime
@@ -11,10 +8,10 @@ from scipy.optimize import curve_fit
 from scipy import stats
 from numpy import linalg as la
 
-def save(par, return_value, name):
+def save(par, return_value, avg, name):
 	now = datetime.datetime.now()
 	f = open(str(name),"a")
-	line = str(now)+" "+str(par)+" "+str(return_value)+"\n"
+	line = str(now)+" "+str(par)+" "+str(return_value)+" "+str(avg)+"\n"
 	f.write(line)
 	
 def scaling_func(tup,*params):
@@ -28,6 +25,7 @@ def scaling_func(tup,*params):
 	psi_1 = L**alpha1*(b10+b11*w+b12*w**2)
 	psi_2 = L**alpha2*(b20+b21*w+b22*w**2)
 	return a00+psi_1+psi_2 #linear for now. 
+
 
 def makeHamiltonian2D(L,V,W):
 	#Generates the Hamiltonian (incl. site disorder) in 2D
@@ -63,7 +61,6 @@ def makeTM(H,E):
 	Hlen=H.shape[0]
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
-
 def Create_Transfer_Matrix(coupling_matrix_down,W,t_low,fraction,size,E,dim):
 	
 	'''
@@ -82,11 +79,8 @@ def Create_Transfer_Matrix(coupling_matrix_down,W,t_low,fraction,size,E,dim):
 	'''
 	#P(t)= c*delta(t-t_h) + (1-c)*delta(t-t_l)
 	c=1 #c=t_hi=1
-	c1=0.3
 	#fraction=c in Z group
 	w=0 #width of off diagonal disorder distributions. In binary model, this is 0
-
-	t_low = np.random.uniform(t_low,c1)
 	if dim==2:
 		
 		#coupling_up is used to form the matrix that couples the nth strip or bar to the n+1th strip or bar
@@ -273,9 +267,9 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	#Performs the actual localization length and conductance calculations
 	eps_N=100000000000
 	Lz=0 #running length
-	n_i=5 #number of steps between orthogonalizations
+	n_i=5 #number of steps between orthogonalizations. Only an initial value, will change dynamically
 	n_i_min=5 #Set n_i_min=n_i if you want to force n_i
-	Nr=100 #number of T matrices to generate Q0 with
+	Nr=1000 #number of T matrices to generate Q0 with
 	
 	
 
@@ -293,9 +287,8 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 			coupling_down.append(t_low+random_num)
 
 	coupling_matrix_down = np.diag(coupling_down)
-	
 	#Generate Q0
-	Q0=np.random.rand(2*N,2*N)-0.5
+	Q0=np.random.rand(2*N,N)-0.5
 	Q0 = Q0.astype(np.float64)
 	
 	Q0, r = np.linalg.qr(Q0)
@@ -309,8 +302,8 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	
 	Q0, r = np.linalg.qr(Q0)
 	
-	d_a=np.zeros(2*N,dtype=np.float64)
-	e_a=np.zeros(2*N,dtype=np.float64)
+	d_a=np.zeros(N,dtype=np.float64)
+	e_a=np.zeros(N,dtype=np.float64)
 	
 	lya=list()
 	glst=list()
@@ -318,18 +311,15 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	
 	cnt=0
 	while eps_N>eps or Lz<min_Lz:
-		#@TODO ADAM this is the meat of the code
 		Umatbackup = Umat #In case error gets too big
 		Lzbackup = Lz
 		coupling_matrix_down_backup = coupling_matrix_down
 		
-		M_ni=Umat
+		M_ni, coupling_matrix_down = Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 		
-		#@TODO this is notes sept 14
 		for i in range(n_i):
 			T, coupling_matrix_down = Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 			M_ni=np.matmul(M_ni,T)
-		
 		Umat=np.matmul(M_ni,Umat)
 		
 		Umat, r = np.linalg.qr(Umat)
@@ -340,8 +330,7 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 		e_a=e_a+np.square(np.log(w_a_norm))
 		
 		#D_i.append(1/n_i*np.log(w_a_norm))
-
-		#@TODO this is the meat
+		
 		
 		Lz=Lz+n_i
 		xi_a=d_a/Lz #these are the lyapunov exponents
@@ -352,9 +341,9 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 		
 
 		lya.append(xi_a[N-1])
-		glst.append(np.log(np.sum(2/(np.cosh(xi_a*n_i)**2))))
+		glst.append(np.log(np.sum(1/np.cosh(L*xi_a)**2)))
 		#eps_N = eps_a[N-1]
-		
+		'''
 		if sum_xi>max_sum_deviation and c==1:
 			#revert and start the iteration over
 			d_a=d_a-np.log(w_a_norm)
@@ -368,7 +357,7 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 			if n_i>n_i_min:
 				n_i=n_i-1 #reduce number of steps between orthogonalizations
 				print('Reducing n_i to '+str(n_i)+', sum of LEs got too big: '+str(sum_xi))
-			
+		'''
 		cnt=cnt+1
 		
 		if cnt%1000==0:
@@ -386,38 +375,16 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 		if len(lya)<=1:
 			eps_N = 1.0 #avoid problems that occur if n_i is too big on the first go-through
 		else:
-			eps_N = stats.sem(lya) #standard error
+			eps_N = stats.sem(lya)/np.mean(lya) #standard error
 		
-	#smallestLya = xi_a[N-1]
 	smallestLya = np.mean(lya)
 	
 	g=np.exp(np.mean(glst))
 	
 	
-	#A=np.matmul(pmat,A)
-	A=np.eye(2*N)
-	return np.array([float(smallestLya), g],dtype=object)
 
-def threadHelper(pack):
-	#Arguments have to be passed in a list for now. Please improve
-	eps=pack[0]
-	min_Lz=pack[1]
-	L=pack[2]
-	V=pack[3]
-	W=pack[4]
-	t_low=pack[5]
-	c=pack[6]
-	E=pack[7]
-	dim=pack[8]
-	av=pack[9]
-	#av=number of trials to average over for conductance and lambda calculations
-	B = np.array([doCalc(eps,min_Lz,L,V,W,t_low,c,E,dim) for x in range(av)],dtype=object)
-	#print('L='+str(L)+' W='+str(W)+' E='+str(E)+' c='+str(c)+' t_low='+str(t_low)+' is done.')
-	
-	return np.array([np.mean(B[:,0]),np.mean(B[:,1]),B[0][2],np.std(B[:,0])],dtype=object)
+	return np.array([float(smallestLya), np.std(lya), g],dtype=object)
 
-
-np.random.uniform(1,1)
 
 
 ### Calculate localization length
@@ -436,5 +403,5 @@ name=sys.argv[10]
 
 params=(eps,min_Lz,L,W,t_low,c,E,dim)
 B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
-ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
-save(params,ret,name)
+ret=np.array([np.mean(B[:,0]),np.sqrt(np.sum(B[:,1]**2)),np.mean(B[:,2])],dtype=object) #avg lambda, avg g
+save(params,ret,avg,name)
