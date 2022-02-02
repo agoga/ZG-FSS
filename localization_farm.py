@@ -105,25 +105,23 @@ def makeTM(H,E):
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
 
-def newTRan(tDist,gaussian=True,testing=False):
-	if testing:
-		tL=.5
-		tH=.5
-		return [tL,tH]
+def newTRan(tDist,gaussian=False):
 
-	if gaussian:
+	if isinstance(tDist,list):
 		tL=np.random.normal(tDist[0][0],tDist[0][1])
 		tH=np.random.normal(tDist[1][0],tDist[1][1])
-	else:
-		if tDist[0][0]==tDist[0][1]:
-			tL=tDist[0][0]
-		else:
-			tL=np.random.uniform(tDist[0][0],tDist[0][1])
+		# if tDist[0][0]==tDist[0][1]:
+		# 	tL=tDist[0][0]
+		# else:
+		# 	tL=np.random.uniform(tDist[0][0],tDist[0][1])
 
-		if tDist[1][0]==tDist[1][1]:
-			tH=tDist[1][0]
-		else:
-			tH=np.random.uniform(tDist[1][0],tDist[1][1])
+		# if tDist[1][0]==tDist[1][1]:
+		# 	tH=tDist[1][0]
+		# else:
+		# 	tH=np.random.uniform(tDist[1][0],tDist[1][1])
+	else:
+		tL=tDist
+		tH=1
 
 	return [tL,tH]
 #newTRan.ranCounter=0
@@ -822,15 +820,33 @@ def test_harness():
 	filename="test_harness.txt"
 	L=4
 	c=.5
-
+	
 	tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
+	tDist=.3
+	print(type(tDist))
+	print(type(L))
+	
 	params=(eps,min_Lz,L,W,tDist,c,E,dim)
 	test_tmatrix(W, tDist, c, L, E, dim)
 
 
 if len(sys.argv) == 1:
 	test_harness()
-else:
+	quit()
+elif len(sys.argv) == 10:
+	### Calculate localization length
+	eps=float(sys.argv[1])
+	min_Lz=float(sys.argv[2])
+	L=int(sys.argv[3])
+	W=float(sys.argv[4])
+	tDist=float(sys.argv[5])
+	c=float(sys.argv[6])
+	E=float(sys.argv[7])
+	dim=int(sys.argv[8])
+	avg=int(sys.argv[9])
+	name=sys.argv[10]
+
+elif len(sys.argv) == 13:
 	### Calculate localization length
 	eps=float(sys.argv[1])
 	min_Lz=float(sys.argv[2])
@@ -849,9 +865,8 @@ else:
 	tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
 
 
-
-	params=(eps,min_Lz,L,W,tDist,c,E,dim)
-	B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
-	ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
-	save(params,ret,avg,name)
-	#save(L,' num ran calls:'+str(newTRan.ranCounter)+' - ',1,"ranTCalls.txt")
+params=(eps,min_Lz,L,W,tDist,c,E,dim)
+B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
+ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
+save(params,ret,avg,name)
+#save(L,' num ran calls:'+str(newTRan.ranCounter)+' - ',1,"ranTCalls.txt")
