@@ -1,4 +1,5 @@
 from glob import iglob
+from stat import IO_REPARSE_TAG_APPEXECLINK
 import numpy as np
 #import concurrent.futures
 import time
@@ -80,11 +81,8 @@ def makeHamiltonian3D(L,V,W):
 	H=H+V*(np.kron(np.eye(L),C)+np.kron(C,np.eye(L)))
 	return H
 
-def genQ0(coupling_matrix_down, W, tDist, c, L, E,dim,Nr):
+def genQ0(coupling_matrix_down, W, tDist, c, L, E,dim,Nr,n_i):
 	N=L*L
-	#Performs the actual localization length and conductance calculations
-	Lz=0 #running length
-	n_i=5 #number of steps between orthogonalizations. Only an initial value, will change dynamically
 	#Generate Q0
 	Q0=np.random.rand(2*N,N)-0.5
 	Q0 = Q0.astype(np.float64)
@@ -92,7 +90,7 @@ def genQ0(coupling_matrix_down, W, tDist, c, L, E,dim,Nr):
 	Q0, r = np.linalg.qr(Q0)
 	
 	for i in range(Nr):
-		T, coupling_matrix_down =Create_Transfer_Matrix(coupling_matrix_down,W,tDist,c,L,E,dim)
+		T, coupling_matrix_down =Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,c,L,E,dim)
 		
 		Q0=np.matmul(T,Q0)
 		if i%n_i==0:
@@ -107,27 +105,59 @@ def makeTM(H,E):
 	T=np.block([[E*np.eye(Hlen)-H,np.eye(Hlen)],[-1*np.eye(Hlen),np.zeros(H.shape)]])
 	return T.astype(np.float64)
 
-def newTRan(tDist,gaussian=True,testing=True):
-	if testing:
-		tL=.5
-		tH=.5
-		return [tL,tH]
-	if gaussian:
+def newTRan(tDist,gaussian=False):
+
+	if isinstance(tDist,list):
 		tL=np.random.normal(tDist[0][0],tDist[0][1])
 		tH=np.random.normal(tDist[1][0],tDist[1][1])
-	else:
-		if tDist[0][0]==tDist[0][1]:
-			tL=tDist[0][0]
-		else:
-			tL=np.random.uniform(tDist[0][0],tDist[0][1])
+		# if tDist[0][0]==tDist[0][1]:
+		# 	tL=tDist[0][0]
+		# else:
+		# 	tL=np.random.uniform(tDist[0][0],tDist[0][1])
 
-		if tDist[1][0]==tDist[1][1]:
-			tH=tDist[1][0]
-		else:
-			tH=np.random.uniform(tDist[1][0],tDist[1][1])
+		# if tDist[1][0]==tDist[1][1]:
+		# 	tH=tDist[1][0]
+		# else:
+		# 	tH=np.random.uniform(tDist[1][0],tDist[1][1])
+	else:
+		tL=tDist
+		tH=1
 
 	return [tL,tH]
 #newTRan.ranCounter=0
+
+def Create_Hamiltonian(W, tDist, c, L):
+	# generate the intra-strip hamiltonian
+	minilist = np.zeros(L)
+	minilist[1] = 1
+	minilist[-1] = 1
+	offdi = circulant(minilist)
+	I = np.eye(L)
+	inner_strip_matrix = np.kron(np.asarray(offdi), I) + np.kron(I, np.asarray(offdi))  # magic!
+	inner_strip_matrix = np.triu(inner_strip_matrix)  # so the energies are symmetric
+	# Find the ones
+	ones_indices = np.nonzero(inner_strip_matrix)
+	ones_indices = np.array(ones_indices)
+
+	# Choose the random indices
+	ones_range = len(ones_indices[0])
+	for ind in range(ones_range):
+		tL,tH=newTRan(tDist)
+		if np.random.rand() > c:
+			inner_strip_matrix[ones_indices[0, ind], ones_indices[1, ind]] = tL
+		else:
+			inner_strip_matrix[ones_indices[0, ind], ones_indices[1, ind]] = tH
+
+	# Transpose it over
+	inner_strip_matrix = inner_strip_matrix + np.transpose(inner_strip_matrix)
+	
+	# Flip the signs
+	inner_strip_matrix = -1 * inner_strip_matrix
+
+
+
+	return inner_strip_matrix
+
 
 def Create_Transfer_Matrix(coupling_matrix_down, W, tDist, c, L, E, dim):
 	# P(t)= c*delta(t-t_h) + (1-c)*delta(t-t_l)
@@ -155,6 +185,7 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, tDist, c, L, E, dim):
 		# Find the ones
 		ones_indices = np.nonzero(inner_strip_matrix)
 		ones_indices = np.array(ones_indices)
+
 		# Choose the random indices
 		ones_range = len(ones_indices[0])
 		for ind in range(ones_range):
@@ -166,9 +197,12 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, tDist, c, L, E, dim):
 
 		# Transpose it over
 		inner_strip_matrix = inner_strip_matrix + np.transpose(inner_strip_matrix)
+		
+		# Flip the signs
+		inner_strip_matrix = -1 * inner_strip_matrix
 
 		# Now add the diagonal disorder
-		inner_strip_matrix = inner_strip_matrix + np.diag(W_strip)
+		inner_strip_matrix = inner_strip_matrix - np.diag(W_strip)
 
 		upper_left = np.matmul(coupling_up_inv, np.eye(N)*E-inner_strip_matrix)
 
@@ -180,6 +214,110 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, tDist, c, L, E, dim):
 
 	return [transfer_matrix, coupling_matrix_up]
 
+
+def Create_Hamiltonian_Old(W, tDist, fraction, size):
+
+	inner_strip_matrix=np.zeros((size**2,size**2))
+
+
+	#generate the intra-strip hamiltonian
+	for i in range(size**2):
+		for j in range(size**2):
+			#First the on-site, diagonal pieces
+			#if i==j:
+				#inner_strip_matrix[i][j]=E-(np.random.random()*W-W/2)
+		#		inner_strip_matrix[i][j]=E-(np.random.normal(0,np.sqrt(W/2)))
+			#Next, the offdiagonal pieces
+			if (i==(j+1) and (i)%size!=0) or (i==(j-1) and (i+1)%size!=0):
+				#TODO maybe new ran instead of below
+
+				#checking if we have a tL link or tH link
+				if np.random.random()<fraction:
+
+					#@TODO NEW RAN
+					tL,tH=newTRan(tDist)
+					if inner_strip_matrix[i][j]==0 and size!=2:
+						random_num=0#np.random.random()*w-w/2
+
+						#Where we have [i][j] we are fixing hopping from i->j same as j->i
+						inner_strip_matrix[i][j]=-(tH+random_num)
+						inner_strip_matrix[j][i]=-(tH+random_num)
+
+					if inner_strip_matrix[i][j]==0 and size==2:
+
+						random_num=0#np.random.random()*w-w/2
+						inner_strip_matrix[i][j]=-(2*(tH+random_num))
+						inner_strip_matrix[j][i]=-(2*(tH+random_num))
+				else:
+					#@TODO NEW RAN
+					tL,tH=newTRan(tDist)
+					if inner_strip_matrix[i][j]==0:
+
+						small_w=w/10
+						random_num=0#np.random.random()*small_w-small_w/2
+						inner_strip_matrix[i][j]=-tL + random_num
+						inner_strip_matrix[j][i]=-tL + random_num
+		#			 This last one ensures periodic boundary conditions
+			if (i+size-1)==j and i%size==0:
+
+				if np.random.random()<fraction:
+					
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						random_num=0#np.random.random()*w-w/2
+						inner_strip_matrix[i][j]=-(tH+random_num)
+						inner_strip_matrix[j][i]=-(tH+random_num)
+
+				else:
+					
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						small_w=w/10
+						random_num=0#np.random.random()*small_w-small_w/2
+						inner_strip_matrix[i][j]=-tL+random_num
+						inner_strip_matrix[j][i]=-tL+random_num
+						
+			if i==(j+size) or i==(j-size):
+				if np.random.random()<fraction:
+
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						random_num=0#np.random.random()*w-w/2
+						inner_strip_matrix[i][j]=-(tH+random_num)
+						inner_strip_matrix[j][i]=-(tH+random_num)
+
+				else:
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						small_w=w/10
+						random_num=0#np.random.random()*small_w-small_w/2
+						inner_strip_matrix[i][j]=-tL + random_num
+						inner_strip_matrix[j][i]=-tL + random_num
+						
+			if i==(j+size**2-size) or i==(j-(size**2-size)):
+				if np.random.random()<fraction:
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						random_num=0#np.random.random()*w-w/2
+						inner_strip_matrix[i][j]=-(tH+random_num)
+						inner_strip_matrix[j][i]=-(tH+random_num)
+
+				else:
+					if inner_strip_matrix[i][j]==0:
+						#@TODO NEW RAN
+						tL,tH=newTRan(tDist)
+						small_w=w/10
+						random_num=0#np.random.random()*small_w-small_w/2
+						inner_strip_matrix[i][j]=-tL + random_num
+						inner_strip_matrix[j][i]=-tL+random_num
+	return inner_strip_matrix
+
+						
 def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim):
 	'''
 	Inputs:
@@ -216,105 +354,21 @@ def Create_Transfer_Matrix_Old(coupling_matrix_down,W,tDist,fraction,size,E,dim)
 		
 		coupling_matrix_up = np.diag(coupling_up)
 		coupling_up_inv=la.inv(coupling_matrix_up)
-		inner_strip_matrix=np.zeros((size**2,size**2))
-		
+
+		# for i in range(size**2):
+		# 	for j in range(size**2):
+		# 		#First the on-site, diagonal pieces
+		# 		if i==j:
+		# 			inner_strip_matrix[i][j]=E-(np.random.random()*W-W/2)	
+
 		#generate the intra-strip hamiltonian
+		inner_strip_matrix = Create_Hamiltonian_Old(W, tDist, fraction, size)
+
 		for i in range(size**2):
 			for j in range(size**2):
 				#First the on-site, diagonal pieces
 				if i==j:
 					inner_strip_matrix[i][j]=E-(np.random.random()*W-W/2)
-	#				 inner_strip_matrix[i][j]=E-(np.random.normal(0,np.sqrt(W/2)))
-				#Next, the offdiagonal pieces
-				if (i==(j+1) and (i)%size!=0) or (i==(j-1) and (i+1)%size!=0):
-					#TODO maybe new ran instead of below
-
-					#checking if we have a tL link or tH link
-					if np.random.random()<fraction:
-
-						#@TODO NEW RAN
-						tL,tH=newTRan(tDist)
-						if inner_strip_matrix[i][j]==0 and size!=2:
-							random_num=0#np.random.random()*w-w/2
-
-							#Where we have [i][j] we are fixing hopping from i->j same as j->i
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-
-						if inner_strip_matrix[i][j]==0 and size==2:
-
-							random_num=0#np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(2*(tH+random_num))
-							inner_strip_matrix[j][i]=-(2*(tH+random_num))
-					else:
-						#@TODO NEW RAN
-						tL,tH=newTRan(tDist)
-						if inner_strip_matrix[i][j]==0:
-
-							small_w=w/10
-							random_num=0#np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL + random_num
-							inner_strip_matrix[j][i]=-tL + random_num
-	#			 This last one ensures periodic boundary conditions
-				if (i+size-1)==j and i%size==0:
-
-					if np.random.random()<fraction:
-						
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							random_num=0#np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-	
-					else:
-						
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							small_w=w/10
-							random_num=0#np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL+random_num
-							inner_strip_matrix[j][i]=-tL+random_num
-							
-				if i==(j+size) or i==(j-size):
-					if np.random.random()<fraction:
-
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							random_num=0#np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-	
-					else:
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							small_w=w/10
-							random_num=0#np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL + random_num
-							inner_strip_matrix[j][i]=-tL + random_num
-							
-				if i==(j+size**2-size) or i==(j-(size**2-size)):
-					if np.random.random()<fraction:
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							random_num=0#np.random.random()*w-w/2
-							inner_strip_matrix[i][j]=-(tH+random_num)
-							inner_strip_matrix[j][i]=-(tH+random_num)
-	
-					else:
-						if inner_strip_matrix[i][j]==0:
-							#@TODO NEW RAN
-							tL,tH=newTRan(tDist)
-							small_w=w/10
-							random_num=0#np.random.random()*small_w-small_w/2
-							inner_strip_matrix[i][j]=-tL + random_num
-							inner_strip_matrix[j][i]=-tL+random_num
-							
-							
 
 		upper_left=np.matmul(coupling_up_inv,inner_strip_matrix)
 		upper_right=-np.matmul(coupling_up_inv,coupling_matrix_down)
@@ -568,7 +622,7 @@ def doCalc(eps,min_Lz,L,W,tDist,c,E,dim):
 	
 	# Q0, r = np.linalg.qr(Q0)
 
-	Q0 = genQ0(coupling_matrix_down,W,tDist,c,L,E,dim,Nr)
+	Q0, coupling_matrix_down = genQ0(coupling_matrix_down,W,tDist,c,L,E,dim,Nr,n_i)
 	
 	d_a=np.zeros(N,dtype=np.float64)
 	e_a=np.zeros(N,dtype=np.float64)
@@ -662,9 +716,6 @@ def doCalc(eps,min_Lz,L,W,tDist,c,E,dim):
 
 def test_tmatrix(W, tDist, c, L, E, dim):
 
-	
-	
-	
 	#Performs the actual localization length and conductance calculations
 	eps_N=100000000000
 	Lz=0 #running length
@@ -674,6 +725,11 @@ def test_tmatrix(W, tDist, c, L, E, dim):
 	L=3
 	c=1
 	N=L*L
+
+	numTest=1
+	seed=123456
+	test_t=True
+	test_h=True
 
 	max_sum_deviation = 10**(-9) #we check this condition every n_i steps
 	
@@ -692,36 +748,61 @@ def test_tmatrix(W, tDist, c, L, E, dim):
 
 	coupling_matrix_down = np.diag(coupling_down)
 
-	Q0, coupling_matrix_down =genQ0(coupling_matrix_down,W,tDist,c,L,E,dim,Nr)
+	Q0, coupling_matrix_down =genQ0(coupling_matrix_down,W,tDist,c,L,E,dim,Nr, n_i)
 	
 
 	coupling_matrix_down=np.identity(N)
 	CDownOld = coupling_matrix_down
 	CDownNew = coupling_matrix_down
 
-	numTest=1
 
-	np.random.seed(1256)
-	for i in range(numTest):
-		#print("i: " + str(i))
-		Told, CDownOld = Create_Transfer_Matrix_Old(CDownOld,W,tDist,c,L,E,dim)
+	#transfermatrix test
+	if test_t:
+		np.random.seed(seed)
+		for i in range(numTest):
+			#print("i: " + str(i))
+			Lt=(i+1)*L
+			Told, CDownOld = Create_Transfer_Matrix_Old(CDownOld,W,tDist,c,Lt,E,dim)
+
+		np.random.seed(seed)
+		for i in range(numTest):
+			#print("i: " + str(i))
+			Lt=(i+1)*L
+			Tnew, CDownNew = Create_Transfer_Matrix(CDownNew,W,tDist,c,Lt,E,dim)
+
+		print('Xfer Matrix')
+		tequal = np.array_equal(Tnew,Told)
+		if tequal:
+			print('Pass')
+		else:
+			print('Fail')
+			print("Old: ")
+			print(Told[0])
+			print("New: ")
+			print(Tnew[0])
 
 
-	np.random.seed(1256)
-	for i in range(numTest):
-		#print("i: " + str(i))
-		Tnew, CDownNew = Create_Transfer_Matrix(CDownNew,W,tDist,c,L,E,dim)
-		
-	tequal = np.array_equal(Tnew,Told)
-	if tequal:
-		print('The same: ' + str(np.array_equal(Tnew,Told)))
-	else:
-		print("Old: ")
-		print(Told[0])
-		print("New: ")
-		print(Tnew[0])
 
+	#hamiltonian test
+	if test_h:
+		for i in range(numTest):
+			#print("i: " + str(i))
+			Lt=(i+1)*L
+			np.random.seed(seed)
+			Hnew = Create_Hamiltonian(W,tDist,c,Lt)
+			np.random.seed(seed)
+			Hold= Create_Hamiltonian_Old(W,tDist,c,Lt)
 
+			print('Hamiltonian L='+str(Lt))
+			hequal = np.array_equal(Hnew,Hold)
+			if hequal:
+				print('Pass')
+			else:
+				print('Fail')
+				print("Old: ")
+				print(Hold)
+				print("New: ")
+				print(Hnew)
 
 
 def test_harness():
@@ -736,21 +817,36 @@ def test_harness():
 	E=0
 	dim=3
 	avg=1
-	filename="E0W10boxtest.txt"
+	filename="test_harness.txt"
 	L=4
 	c=.5
-
+	
 	tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
+	tDist=.3
+	print(type(tDist))
+	print(type(L))
+	
 	params=(eps,min_Lz,L,W,tDist,c,E,dim)
 	test_tmatrix(W, tDist, c, L, E, dim)
-	#B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
-	#ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
-	#save(params,ret,avg,name)
 
 
 if len(sys.argv) == 1:
 	test_harness()
-else:
+	quit()
+elif len(sys.argv) == 10:
+	### Calculate localization length
+	eps=float(sys.argv[1])
+	min_Lz=float(sys.argv[2])
+	L=int(sys.argv[3])
+	W=float(sys.argv[4])
+	tDist=float(sys.argv[5])
+	c=float(sys.argv[6])
+	E=float(sys.argv[7])
+	dim=int(sys.argv[8])
+	avg=int(sys.argv[9])
+	name=sys.argv[10]
+
+elif len(sys.argv) == 13:
 	### Calculate localization length
 	eps=float(sys.argv[1])
 	min_Lz=float(sys.argv[2])
@@ -769,9 +865,8 @@ else:
 	tDist=[[t_low_bot,t_low_top],[t_high_bot,t_high_top]]
 
 
-
-	params=(eps,min_Lz,L,W,tDist,c,E,dim)
-	B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
-	ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
-	save(params,ret,avg,name)
-	#save(L,' num ran calls:'+str(newTRan.ranCounter)+' - ',1,"ranTCalls.txt")
+params=(eps,min_Lz,L,W,tDist,c,E,dim)
+B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
+ret=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
+save(params,ret,avg,name)
+#save(L,' num ran calls:'+str(newTRan.ranCounter)+' - ',1,"ranTCalls.txt")
