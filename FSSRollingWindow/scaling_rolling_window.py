@@ -20,8 +20,9 @@ def openfile(filename):
             W = float(strlist[5][:-1])
             c = float(strlist[7][:-1])
             lyap = float(strlist[10][1:])
-            sem = float(strlist[11][:-1])
-            outputlst.append([L, W, c, lyap, sem])
+            std = float(strlist[11])
+            g = float(strlist[12][:-1])
+            outputlst.append([L, W, c, lyap, std, g])
     return outputlst
 def openfileZeke(filename):
     f = open(filename, "r")
@@ -34,6 +35,34 @@ def openfileZeke(filename):
             W = float(0.0)
             g = float(word)
             outputlst.append([L, W, c, g])
+    return outputlst
+
+
+def openfileAdam(filename):
+    f = open(filename, "r")
+    outputlst = []
+    for line in f:
+        if line:
+            strlist = line.split()
+            slen = len(strlist)
+            L = float(strlist[4][:-1])
+            W = float(strlist[5][:-1])
+            gaus = None
+            cen = None
+            if slen == 16:  # NEW Adam version with distribution vals
+                c = float(strlist[10][:-1])
+                # example of gaus/cen[[0.35, 0.03],
+                gaus = float(strlist[7][:-2])
+                cen = float(strlist[6][2:-1])
+
+                lyap = float(strlist[13][1:])
+                sem = float(strlist[14][:-1])
+            else:
+                c = float(strlist[7][:-1])
+                lyap = float(strlist[10][1:])
+                sem = float(strlist[11][:-1])
+
+            outputlst.append([L, W, c, lyap, sem, gaus, cen])
     return outputlst
 
 def bootVals(Lambda,L,Tvar,sigma,n):
@@ -66,7 +95,7 @@ def bootVals(Lambda,L,Tvar,sigma,n):
 
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="../data/offdiagE5W10.txt"
+filename="../../legacy/offdiagE0W10wide2.txt"
 minL = 8
 
 
@@ -76,20 +105,20 @@ n_I = 1
 m_R = 2
 m_I = 1
 
-resamplesize = 24  # number of resamples
-numCPUs = 3 # number of processors to use. Each one will do a resample
+resamplesize = 64  # number of resamples
+numCPUs = 6 # number of processors to use
 
 window_width = 1.0 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
-window_center = 0.06
+window_center = 0.63
 
 input = np.array(openfile(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
+#cenrange = np.unique(input[:,6])
 
-
-data = input[:, 0:5]  # L, W, c, LE
+data = input[:, 0:7]  # L, W, c, LE
 data[:, 3] = 1 / (data[:, 0] * data[:, 3])  # L, W, c, normalized localization length
 
 # sort according to L
@@ -99,13 +128,15 @@ data = data[data[:,0]>=minL]
 data = data[np.abs(data[:,2]-window_center)<=window_offset+window_width]
 data = data[np.abs(data[:,2]-window_center)>=window_offset]
 
-Lambda = data[:, 3]
+
 L = data[:, 0]
 W = data[:, 1]
 c = data[:, 2]
-sigma = data[:, 4] #uncomment for MacKinnon
+Lambda = data[:, 3]
+sigma = input[:, 4]
+g = input[:, 5]
 
-crit_bound_lower, crit_bound_upper = 0.4, 0.6  # critical value bounds
+crit_bound_lower, crit_bound_upper = 0.2, 0.7  # critical value bounds
 #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
 nu_bound_lower, nu_bound_upper = 0.8, 2.2  # nu bounds
 y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
@@ -114,8 +145,7 @@ use_bounds = True
 
 # set the driving parameter
 Tvar = c
-#print(L)
-#print(Tvar)
+
 
 np.seterr(all='raise')
 
@@ -264,14 +294,14 @@ if __name__ == '__main__':
     print(Tcrange)
 
 
-    TcChoke = np.percentile(Tcrange, [37.5, 62.5], interpolation='lower') # tight range
+    TcChoke = np.percentile(Tcrange, [37.5, 62.5]) # tight range
     Tcrangef = Tcrange[Tcrange >= TcChoke[0]]
     Nurangef = Nurange[Tcrange >= TcChoke[0]]
     Nurangef = Nurangef[Tcrangef <= TcChoke[1]]
     Tcrangef = Tcrangef[Tcrangef <= TcChoke[1]]
 
-    nu_1CI = np.percentile(Nurange, [2.5, 97.5], interpolation='lower')
-    TcCI = np.percentile(Tcrange, [2.5, 97.5], interpolation='lower')
+    nu_1CI = np.percentile(Nurange, [2.5, 97.5])
+    TcCI = np.percentile(Tcrange, [2.5, 97.5])
     Tcfinal = np.median(Tcrange)
     Nufinal = np.median(Nurange) # Don't take Nufinal if you are pregnant or nursing
     print('50%ile Tc range: {}, {}'.format(round(min(Tcrangef),3), round(max(Tcrangef),3)))
@@ -291,7 +321,7 @@ if __name__ == '__main__':
 
     plt.figure()
     plt.hist(Nurange, label=r'$\nu$', color='#1a1af980')
-    plt.hist(Tcrange, label=r'$c_c$', color='r')
+    #plt.hist(Tcrange, label=r'$c_c$', color='r')
     plt.xlabel(r'$\nu$')
     plt.ylabel('counts')
     def plotScalingFunc(T, L, args):
@@ -327,22 +357,28 @@ if __name__ == '__main__':
     for T in np.unique(Tvar)[::-1]:
         toPlotX = []
         toPlotY = []
+        Yerror = []
         for i, Tv in enumerate(Tvar):
             if T == Tv:
                 toPlotY.append(Lambda[i])
                 toPlotX.append(L[i])
+                Yerror.append(sigma[i])
         npX = np.array(toPlotX)
         npY = np.array(toPlotY)
+        npYerror= np.array(Yerror)
         inds = npX.argsort()  # sort the data according to L to make sure it plots right
         npX = npX[inds]
         npY = npY[inds]
+        npYerror = npYerror[inds]
         if np.array_equal(Tvar,W):
             lbl='W='
         else:
             lbl='c='
-        ax3.semilogy(npX, npY, 'o-', label=lbl + str(round(T,2)))
+        #ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,2)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=5)
+        ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
     ax3.set_xlabel('L', fontsize=fs)
     ax3.set_xscale('log')
+    ax3.set_yscale('log')
     Lrange = np.arange(min(Lrange),max(Lrange)+1)
     ax3.set_xticks(Lrange)
     ax3.set_xticklabels(list(map(int, Lrange)))
