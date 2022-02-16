@@ -9,8 +9,7 @@ from scipy import stats
 from numpy import linalg as la
 
 import multiprocessing as mp
-import itertools
-import cProfile
+import os
 
 def save(par, return_value, avg, name):
 	now = datetime.datetime.now()
@@ -289,7 +288,7 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	Q0, r = np.linalg.qr(Q0)
 	
 	for i in range(Nr):
-		T, coupling_matrix_down =Create_Transfer_Matrix_Chase(coupling_matrix_down,W,t_low,c,L,E,dim)
+		T, coupling_matrix_down =Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 		Q0=np.matmul(T,Q0)
 		if i%n_i==0:
 			Q0, r = np.linalg.qr(Q0)
@@ -305,10 +304,10 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	timeit = 0
 	cnt =0
 	while eps_N>eps or Lz<min_Lz:
-		M_ni, coupling_matrix_down = Create_Transfer_Matrix_Chase(coupling_matrix_down,W,t_low,c,L,E,dim)
+		M_ni, coupling_matrix_down = Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 		
 		for i in range(n_i):
-			T, coupling_matrix_down = Create_Transfer_Matrix_Chase(coupling_matrix_down,W,t_low,c,L,E,dim)
+			T, coupling_matrix_down = Create_Transfer_Matrix(coupling_matrix_down,W,t_low,c,L,E,dim)
 			M_ni=np.matmul(M_ni,T)
 		Umat=np.matmul(M_ni,Umat)
 		Umat, r = np.linalg.qr(Umat)
@@ -340,7 +339,7 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 		else:
 			eps_N = stats.sem(lya)/np.mean(lya) #standard error
 
-		monitor = True
+		monitor = False
 		if Lz % 2000 == 0 and monitor==True:
 			print("L: %d, c: %.3f, E: %.1f"%(L,c,E))
 			print("Lz: %d" % Lz)
@@ -370,29 +369,31 @@ def main():
 	L = 6
 	W = 10
 	t_low = 0.3
-	c = 0.14
-	E = 10
+	c = 0.35
+	E = 0
 	dim = 3
-	avg = 1
+	num_reals = 200 #number of disorder realizations
 
 	crange = np.linspace(0.35,0.45, 11)
 	Lrange = np.arange(8, 14)
 	params=(eps,min_Lz,L,W,t_low,c,E,dim)
 
-	pool = mp.Pool(processes=6)
+	num_processes = 12
+
+	pool = mp.Pool(processes=num_processes)
 	start = time.time()
-	results = pool.starmap(doCalc, ((params, ) * avg))
-	#results = doCalc(*params)
+	results = pool.starmap(doCalc, ((params, ) * num_reals))
 
 	end = time.time()
 	#print("g: %.7f"%ret[2])
 	#save(params, ret, avg, filename)
 	results = np.squeeze(results)
+	#print(results)
 	plt.hist(results[:,0], bins='auto')
 	plt.xlabel("Lyapunov Exp")
 	avgSmPosLE = np.average(results[:,0])
-	SESmPosLE = np.sqrt(np.sum(results[:,1]**2))/(avgSmPosLE * np.sqrt(avg))
-	#SESmPosLE = stats.sem(results[:,0])/avgSmPosLE
+	#SESmPosLE = np.sqrt(np.sum(results[:,1]**2))/(avgSmPosLE * np.sqrt(num_reals))
+	SESmPosLE = stats.sem(results[:,0])/avgSmPosLE
 	print("Average LE: %.7f" % avgSmPosLE)
 	print("Std Err. LE: %.7f" % SESmPosLE)
 	print(str(end-start) + " seconds elapsed.")
@@ -400,5 +401,5 @@ def main():
 
 if __name__=="__main__":
 	np.set_printoptions(linewidth=400)
-	cProfile.run('main()', sort='time')
-	#main()
+	#cProfile.run('main()', sort='time')
+	main()
