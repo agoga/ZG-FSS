@@ -397,19 +397,22 @@ else:
 	c=.5
 	E=0
 	dim=3
-	num_meas=1
+	num_meas=2
 	name="test_harness.txt"
 	
 	
 
-start = time.time()
+
 params=(eps,min_Lz,L,W,t_low,c,E,dim)
-B = np.array([doCalc(*params) for x in range(num_meas)],dtype=object) #do the calculation and the averaging
+#B = np.array([doCalc(*params) for x in range(num_meas)],dtype=object) #do the calculation and the averaging
+for x in range(num_meas):
+	start = time.time()
+	B = doCalc(*params)
+	end = time.time()
+	save(params,B,num_meas, name, end-start)
 #ret=np.array([np.mean(B[:,0]),np.sqrt(np.sum(B[:,1]**2)),np.mean(B[:,2])],dtype=object) #num_meas lypunov exp, num_meas g
 #print("Avg. LE: %.7f"%ret[0])
 #print("Std. Dev: %.7f"%ret[1])
 #print("g: %.7f"%ret[2])
-end = time.time()
+
 #print("Took "+str(end-start)+" seconds")
-for i in range(len(B)):
-	save(params,B[i,:],num_meas,name, end-start)
