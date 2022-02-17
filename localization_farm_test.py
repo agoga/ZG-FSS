@@ -8,15 +8,27 @@ from scipy.optimize import curve_fit
 from scipy import stats
 from numpy import linalg as la
 
-def save(par, return_value, avg, name, time):
+global random_list, rl_size, page_size, rl_i
+
+
+page_size=10000000
+random_list=np.random.rand(page_size)
+rl_size=page_size
+rl_i=0
+
+
+
+
+def save(par, return_value, num_meas, name, time):
 	now = datetime.datetime.now()
 	f = open(str(name),"a")
-	line = str(now)+" "+str(par)+" "+str(return_value)+" "+str(avg)+" "+str(time)+"s\n"
+	line = str(now)+" "+str(par)+" "+str(return_value)+" "+str(num_meas)+" "+str(time)+"s\n"
 	f.write(line)
 
 def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 	# P(t)= c*delta(t-t_h) + (1-c)*delta(t-t_l)
 	# Dont use dim==2!
+	global random_list, rl_size, page_size, rl_i
 
 	N = L * L
 	if dim == 3:
@@ -28,11 +40,21 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 		# coupling_up is used to form the matrix that couples the nth strip or bar to the n+1th strip or bar
 		coupling_up = []
 		for i in range(N):
+
+			if rl_i>=rl_size:
+				random_list=np.append(random_list,np.random.rand(page_size))
+				rl_size+=page_size
+				
+			ran=random_list[rl_i]
+			rl_i+=1
+
 			# c determines the connectivity (fraction of good links) on the lattice
-			if np.random.random() < c:
+			if ran < c:
 				coupling_up.append(1.0) #t_hi
 			else:
 				coupling_up.append(t_low)
+
+			
 
 		coupling_matrix_up = np.diag(coupling_up)
 		coupling_up_inv = np.linalg.inv(coupling_matrix_up)
@@ -51,7 +73,13 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 		# Choose the random indices
 		ones_range = len(ones_indices[0])
 		for ind in range(ones_range):
-			if np.random.rand() > c:
+			if rl_i>=rl_size:
+				random_list=np.append(random_list,np.random.rand(page_size))
+				rl_size+=page_size
+				
+			ran=random_list[rl_i]
+			rl_i+=1
+			if ran > c:
 				inner_strip_matrix[ones_indices[0, ind], ones_indices[1, ind]] = t_low
 
 		# Transpose it over
@@ -349,24 +377,39 @@ def doCalc(eps, min_Lz, L, W, t_low, c, E, dim):
 
 ### Calculate localization length
 
-eps=float(sys.argv[1])
-min_Lz=float(sys.argv[2])
-L=int(sys.argv[3])
-W=float(sys.argv[4])
-t_low=float(sys.argv[5])
-c=float(sys.argv[6])
-E=float(sys.argv[7])
-dim=int(sys.argv[8])
-avg=int(sys.argv[9])
-name=sys.argv[10]
+if len(sys.argv) == 11:
+	eps=float(sys.argv[1])
+	min_Lz=float(sys.argv[2])
+	L=int(sys.argv[3])
+	W=float(sys.argv[4])
+	t_low=float(sys.argv[5])
+	c=float(sys.argv[6])
+	E=float(sys.argv[7])
+	dim=int(sys.argv[8])
+	num_meas=int(sys.argv[9])
+	name=sys.argv[10]
+else:
+	eps=1
+	min_Lz=5000
+	L=6
+	W=10
+	t_low=.3
+	c=.5
+	E=0
+	dim=3
+	num_meas=1
+	name="test_harness.txt"
+	
+	
 
 start = time.time()
 params=(eps,min_Lz,L,W,t_low,c,E,dim)
-B = np.array([doCalc(*params) for x in range(avg)],dtype=object) #do the calculation and the averaging
-ret=np.array([np.mean(B[:,0]),np.sqrt(np.sum(B[:,1]**2)),np.mean(B[:,2])],dtype=object) #avg lypunov exp, avg g
+B = np.array([doCalc(*params) for x in range(num_meas)],dtype=object) #do the calculation and the averaging
+#ret=np.array([np.mean(B[:,0]),np.sqrt(np.sum(B[:,1]**2)),np.mean(B[:,2])],dtype=object) #num_meas lypunov exp, num_meas g
 #print("Avg. LE: %.7f"%ret[0])
 #print("Std. Dev: %.7f"%ret[1])
 #print("g: %.7f"%ret[2])
 end = time.time()
 #print("Took "+str(end-start)+" seconds")
-save(params,ret,avg,name, end-start)
+for i in range(len(B)):
+	save(params,B[i,:],num_meas,name, end-start)

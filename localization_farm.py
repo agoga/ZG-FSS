@@ -378,7 +378,7 @@ def doCalc(eps, min_Lz, L, W, t_low, c, E, dim):
 ### Calculate localization length
 
 
-if len(sys.argv) == 10:
+if len(sys.argv) == 11:
 	eps=float(sys.argv[1])
 	min_Lz=float(sys.argv[2])
 	L=int(sys.argv[3])
