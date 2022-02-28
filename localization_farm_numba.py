@@ -26,13 +26,18 @@ def custom_circulant(array):
     return ret
 
 @jit(nopython=True)
-def custom_diag(array):
-    L=len(array)
-    ret=np.zeros((L,L))
+def custom_diag(array):#,dtt=None):
+	L = len(array)
 
-    for i in range(L):
-        ret[i,i]=array[i]
-    return ret
+	#if dtt is not None:
+	#	ret=np.zeros((L,L), dtype=dtt)
+	#else:
+	#	ret=np.zeros((L,L))
+	ret=np.zeros((L,L))
+	for i in range(L):
+		ret[i,i]=array[i]
+	return ret
+
 
 @jit(forceobj=True)
 def save(par, return_value, avg, name, time):
@@ -62,59 +67,68 @@ def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 			else:
 				coupling_up.append(t_low)
 
+		#@TODO NUMBA
 		#coupling_matrix_up = np.diag(coupling_up)
 		coupling_matrix_up =custom_diag(coupling_up)
+
 		coupling_up_inv = np.linalg.inv(coupling_matrix_up)
 		# generate the intra-strip hamiltonian
 		minilist = np.zeros(L)
 		minilist[1] = 1
 		minilist[-1] = 1
 
+		#@TODO NUMBA
 		#offdi = circulant(minilist)
 		offdi=custom_circulant(minilist)
+
+
 		I = np.eye(L)
 		inner_strip_matrix = np.kron(np.asarray(offdi), I) + np.kron(I, np.asarray(offdi))  # magic!
 		inner_strip_matrix = np.triu(inner_strip_matrix)  # so the energies are symmetric
 		# Find the ones
 		ones_indices = np.nonzero(inner_strip_matrix)
-		#ones_indices = np.array([ones_indices[0].astype(np.int64),ones_indices[1].astype(np.int64)])
+	
+		#@TODO NUMBA
+		#ones_indices = np.array(ones_indices)
 		ones_indices_1 = ones_indices[0].astype(np.int64)
-		ones_indices_2= ones_indices[1].astype(np.int64)
-		#ones_indices = np.array(ones_indices)#adam edit
+		ones_indices_2= ones_indices[1].astype(np.int64)#ones_indices = np.array([ones_indices[0].astype(np.int64),ones_indices[1].astype(np.int64)])
+
 
 
 		# Choose the random indices
 		ones_range = len(ones_indices[0])
 		for ind in range(ones_range):
 			if np.random.rand() > c:
+				#@TODO NUMBA
 				inner_strip_matrix[ones_indices_1[ind], ones_indices_2[ind]] = t_low
+				#inner_strip_matrix[ones_indices[0, ind], ones_indices[1, ind]] = t_low
 
 		# Transpose it over
 		inner_strip_matrix = inner_strip_matrix + np.transpose(inner_strip_matrix)
 
 		# Now add the diagonal disorder
+		#@TODO NUMBA
 		#inner_strip_matrix = inner_strip_matrix + np.diag(W_strip)
 		inner_strip_matrix = inner_strip_matrix + custom_diag(W_strip)
 
 		#upper_left = np.matmul(coupling_up_inv, np.eye(N)*E-inner_strip_matrix)
-		#upper_right = -np.matmul(coupling_up_inv, coupling_matrix_down)
-		#upper_left = matmul_left_helper(coupling_up_inv,coupling_matrix_down,inner_strip_matrix,E,N)
-		#upper_right = matmul_right_helper(coupling_up_inv,coupling_matrix_down,inner_strip_matrix,E,N)
-
-		upper_left = coupling_up_inv@np.eye(N)*E-inner_strip_matrix
+		upper_left = coupling_up_inv@((np.eye(N)*E)-inner_strip_matrix)
 		upper_right = -coupling_up_inv@coupling_matrix_down
 
 		lower_left = np.eye(N)
 		lower_right = np.zeros((N, N))
 
+		#@TODO NUMBA
 		u=(upper_left, upper_right)
 		l=(lower_left, lower_right)
 		uf=np.hstack(u)
 		lf=np.hstack(l)
 		transfer_matrix = np.vstack((uf,lf))
+		#transfer_matrix = np.vstack([np.hstack([upper_left, upper_right]), np.hstack([lower_left, lower_right])])
 
 	return [transfer_matrix, coupling_matrix_up]
 
+#@jit(nopython=True)
 @jit(forceobj=True)
 def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	#eps: desired error
@@ -225,69 +239,36 @@ def doCalc(eps,min_Lz,L,W,t_low,c,E,dim):
 	print("======================================")
 	return np.array([float(smallestLEAvg), np.std(lya) , g],dtype=object) #avg of LEs, standard error of mean, g
 
-def main():
-	num_processes = 1
-	num_args = len(sys.argv)
+if len(sys.argv) == 11:
+	eps=float(sys.argv[1])
+	min_Lz=float(sys.argv[2])
+	L=int(sys.argv[3])
+	W=float(sys.argv[4])
+	t_low=float(sys.argv[5])
+	c=float(sys.argv[6])
+	E=float(sys.argv[7])
+	dim=int(sys.argv[8])
+	num_meas=int(sys.argv[9])
+	name=sys.argv[10]
+else:
+	eps=1
+	min_Lz=5000
+	L=6
+	W=10
+	t_low=.3
+	c=.5
+	E=0
+	dim=3
+	num_meas=2
+	name="test_harness.txt"
+	
+	
 
-	#determining a local or server run only by number of args, so don't run this file on farm without arguments
-	if num_args == 11:
-		eps=float(sys.argv[1])
-		min_Lz=float(sys.argv[2])
-		L=int(sys.argv[3])
-		W=float(sys.argv[4])
-		t_low=float(sys.argv[5])
-		c=float(sys.argv[6])
-		E=float(sys.argv[7])
-		dim=int(sys.argv[8])
-		num_meas=int(sys.argv[9])
-		name=sys.argv[10]
-		num_processes=1
-	else:
-		eps=1
-		min_Lz=500000
-		L=4
-		W=10
-		t_low=.3
-		c=.5
-		E=0
-		dim=3
-		num_meas=1#number of realizations requested
-		name="local_test.txt"
 
-	crange = np.linspace(0.35,0.45, 11)
-	Lrange = np.arange(8, 14)
-	params=(eps,min_Lz,L,W,t_low,c,E,dim)
+params=(eps,min_Lz,L,W,t_low,c,E,dim)
+#B = np.array([doCalc(*params) for x in range(num_meas)],dtype=object) #do the calculation and the averaging
+for x in range(num_meas):
 	start = time.time()
-
-	if num_processes > 1:
-		
-		pool = mp.Pool(processes=num_processes)
-		results = pool.starmap(doCalc, ((params, ) * num_meas))
-		results = np.squeeze(results)
-	else:
-		results = np.array([doCalc(*params) for x in range(num_meas)],dtype=object) #do the calculation and the averaging
-		#results=np.array([np.mean(B[:,0]),np.mean(B[:,1])],dtype=object) #avg lambda, avg g
-
-		#save(params,results,num_meas,filename)
-
+	B = doCalc(*params)
 	end = time.time()
-	#print("g: %.7f"%ret[2])
-	save(params,results,num_meas,name, end-start)
-
-
-	#if called locally(with no args) give plots
-	if num_args <= 1:
-		plt.hist(results[:,0], bins='auto')
-		plt.xlabel("Lyapunov Exp")
-		avgSmPosLE = np.average(results[:,0])
-		#SESmPosLE = np.sqrt(np.sum(results[:,1]**2))/(avgSmPosLE * np.sqrt(num_meas))
-		SESmPosLE = stats.sem(results[:,0])/avgSmPosLE
-		print("Average LE: %.7f" % avgSmPosLE)
-		print("Std Err. LE: %.7f" % SESmPosLE)
-		print(str(end-start) + " seconds elapsed.")
-		plt.show()
-
-if __name__=="__main__":
-	np.set_printoptions(linewidth=400)
-	#cProfile.run('main()', sort='time')
-	main()
+	save(params,B,num_meas, name, end-start)
