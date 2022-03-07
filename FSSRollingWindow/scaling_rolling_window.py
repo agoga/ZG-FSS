@@ -59,7 +59,7 @@ def openfileAdam(filename):
                 sem = float(strlist[14][:-1])
             else:
                 c = float(strlist[7][:-1])
-                lyap = float(strlist[10][1:])
+                lyap = float(strlist[10][2:])
                 sem = float(strlist[11][:-1])
 
             outputlst.append([L, W, c, lyap, sem, gaus, cen])
@@ -93,9 +93,42 @@ def bootVals(Lambda,L,Tvar,sigma,n):
             sigmanew=np.vstack([sigmanew,sigma[outputtemp]])
     return output,Lambdanew,Lnew,Tvarnew,sigmanew
 
+def compressLambda(Lambda_in, L_in, c_in, sigma_in):
+    #input: Lambda, L, c, sigma data. May be multiple Lambdas per (c,L)
+    #output: for each (c,L), weighted average and std dev
+    c_unique = np.unique(c_in)
+    L_unique = np.unique(L_in)
+
+    cL_pairs = [[c,L] for c in c_unique for L in L_unique]
+    Lambda_out = np.zeros(len(cL_pairs))
+    L_out = np.zeros(len(cL_pairs))
+    c_out = np.zeros(len(cL_pairs))
+    Lambda_out_sigma = np.zeros(len(cL_pairs))
+    for i, (c,L) in enumerate(cL_pairs):
+        cL_ind = np.where((c_in==c) & (L_in==L))[0] #indices of matching c,L pair in Lambda
+        matchingLambdas = [Lambda_in[j] for j in cL_ind]
+        matchingSigmas = [sigma_in[j] for j in cL_ind]
+        if len(matchingLambdas)>0 and len(matchingSigmas)>0:
+            # Final average is weighted by std devs
+            Lambda_out[i] = np.average(matchingLambdas, weights=1/np.square(matchingSigmas))
+            # Final std dev calculated the usual way
+            Lambda_out_sigma[i] = 1/np.sqrt(np.sum(1/np.square(matchingSigmas)))
+            # corresponding c,L arrays with same indexes
+            c_out[i] = c
+            L_out[i] = L
+    # Finally, remove zeros in case some c,L pairs don't have an associated Lambda
+    L_out = L_out[Lambda_out!=0]
+    c_out = c_out[Lambda_out!=0]
+    Lambda_out_sigma = Lambda_out_sigma[Lambda_out!=0]
+    Lambda_out = Lambda_out[Lambda_out != 0]
+    return Lambda_out, L_out, c_out, Lambda_out_sigma
+
+
+
+
 fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
 fs = 18 #font size
-filename="../../legacy/offdiagE0W10wide2.txt"
+filename="../../legacy/offdiagE2W10BIG.txt"
 minL = 8
 
 
@@ -106,13 +139,13 @@ m_R = 2
 m_I = 1
 
 resamplesize = 64  # number of resamples
-numCPUs = 6 # number of processors to use
+numCPUs = 3 # number of processors to use
 
 window_width = 1.0 #width of window
 window_offset = 0.0  #  distance from window center to near edge of window
 window_center = 0.63
 
-input = np.array(openfile(filename))
+input = np.array(openfileAdam(filename))
 Lrange = np.unique(input[:, 0])
 Wrange = np.unique(input[:, 1])
 crange = np.unique(input[:, 2])
@@ -135,6 +168,9 @@ c = data[:, 2]
 Lambda = data[:, 3]
 sigma = input[:, 4]
 g = input[:, 5]
+
+# Eliminates multiple Lambdas per (c,L) pair via average (weighted by std dev) and propagates uncertainty through sigma
+Lambda, L, c, sigma = compressLambda(Lambda, L, c, sigma)
 
 crit_bound_lower, crit_bound_upper = 0.2, 0.7  # critical value bounds
 #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
@@ -374,8 +410,8 @@ if __name__ == '__main__':
             lbl='W='
         else:
             lbl='c='
-        #ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,2)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=5)
-        ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
+        ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,2)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=5)
+        #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
     ax3.set_xlabel('L', fontsize=fs)
     ax3.set_xscale('log')
     ax3.set_yscale('log')
