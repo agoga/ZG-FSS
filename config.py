@@ -19,6 +19,7 @@ from csv import writer
 from os import makedirs,path
 
 from errno import EEXIST
+
 now = datetime.now()
 #default of no run name
 runname=''#now.strftime("%H_%M")
@@ -58,6 +59,7 @@ def datafilename(fn):
     global rundir
     global setname
     setname=fn.removesuffix('.txt')
+    setname=fn.removesuffix('.csv')
     #newdirectory()
     #https://stackoverflow.com/questions/7165749/open-file-in-a-relative-location-in-python
     #likely unneeded
@@ -140,8 +142,8 @@ def savecsv(data,col_names=None,folder=None):
         folder = setname
 
 
-
-    csvfilename=setfilename(rundir+setname+'.csv')
+    csv_name=setname+'_plot.csv'
+    csvfilename=setfilename(rundir+csv_name)
     #data=[now.strftime("%D %H:%M")] + data
 
     file_exists = path.isfile(csvfilename)
@@ -155,18 +157,14 @@ def savecsv(data,col_names=None,folder=None):
             
         csv_writer.writerow(data)
 
-    return data 
+    return csv_name 
 
 def createPlotTitle(W=None, E=None, cost_PP=None, execution_time=None, 
         crit_c=None, nu_val=None, window_offset=None, window_width=None, t_low=None, t_high=None):
+        '''
+	W=None, E=None, cost_PP=None, execution_time=None, 
+        crit_c=None, nu_val=None, window_offset=None, window_width=None, t_low=None, t_high=None
+'''
         title = ''
-        title 
         title = "cpp:%.2f   %s\n\nCc: %s - nu: %f - offset: %.2f - width: %.2f" % (costpp,exet,cc, nuval, window_offset,window_width)
         return title
-'''
-	coupling_matrix_down: The coupling between the nth and n-1th bars/strips.
-	W: Diagonal disorder
-	size: the width of the strip or bar. Currently only square bars are supported
-	fraction: the fraction of links that are "good", AKA necking fraction
-	E: The fermi level, 0 represents the center of the band
-'''
