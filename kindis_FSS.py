@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
+import matplotlib.ticker as mticker
 from scipy import stats
 from scipy import optimize
 from scipy import special
@@ -46,37 +47,37 @@ if __name__ == '__main__':
         datafile='E2W10Lz100K.csv'
 
         minL = 10
-        maxL= 20
+        maxL= 28
 
         minC=.20
         maxC=.40
 
-        resamplesize = 128 # number of resamples
-        numCPUs = 2 # number of processors to use
+        resamplesize = 1 # number of resamples
+        numCPUs = 1 # number of processors to use
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
 
     gen_repeats=1000
 
-    pdf_name_identifier='-highres'#"high-resample"#will be added to the 
+    pdf_name_identifier='-'+str(resamplesize)+'rs'+'relavant'#"high-resample"#will be added to the 
 
     window_width = 1.0 #width of window
     window_offset = 0.0  #  distance from window center to near edge of window
     window_center = 0.63
 
-    crit_bound_lower, crit_bound_upper = 0.2, 0.7  # critical value bounds
+    crit_bound_lower, crit_bound_upper = 0.2, 0.4  # critical value bounds
     #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
-    nu_bound_lower, nu_bound_upper = 0.8, 2.2  # nu bounds
+    nu_bound_lower, nu_bound_upper = 0.8, 2  # nu bounds
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
     param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
     use_bounds = True
     displayPlots=True
 
     # orders of expansion
-    n_R = 3
+    n_R = 3#3
     n_I = 1
-    m_R = 2
+    m_R = 2#2
     m_I = 1
 
     def bootVals(Lambda,L,Tvar,sigma,n):
@@ -321,20 +322,23 @@ if __name__ == '__main__':
     Nurange=np.array([])
     Tcrange=np.array([])
 
+    
     if resamplesize == 1 and bL.ndim == 1:  # fix edge case
         bL = np.expand_dims(L, 0)
         bTvar = np.expand_dims(Tvar, 0)
         bLambda = np.expand_dims(Lambda, 0)
 
+    print('a')
     #list containing problem descriptions for each bootstrap resample
     problist = [pg.problem(objective_function(bL[i, :], bTvar[i, :], bLambda[i, :])) for i in range(resamplesize)]
     probbackup = problist
-
+    print('b')
 
     #definition of the algorithm
     algo = pg.algorithm(pg.cmaes(gen=gen_repeats, force_bounds=use_bounds, ftol=1e-8))
+    print('c')
     pg.mp_island.init_pool(processes=numCPUs)
-
+    print('d')
     #print("Computing main fit")
     #pop = pg.population(prob=objective_function(L, Tvar, Lambda), size=500)
     #algo.evolve(pop)
@@ -442,11 +446,13 @@ if __name__ == '__main__':
         #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
 
     ax3.set_xlabel('L', fontsize=fs)
-    ax3.set_xscale('log')
+    #ax3.set_xscale('log')
     ax3.set_yscale('log')
-    Lrange = np.arange(min(Lrange),max(Lrange)+1)
+    Lrange = np.arange(min(Lrange),max(Lrange)+1,step=2)
     ax3.set_xticks(Lrange)
-    ax3.set_xticklabels(list(map(int, Lrange)))
+    ax3.set_xticklabels(list(map(str, Lrange)))
+    #ax3.xaxis.set_minor_formatter(mticker.ScalarFormatter())
+    #plt.ticklabel_format(axis='x',style='plain')
     ax3.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
     
