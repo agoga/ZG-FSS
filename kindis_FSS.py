@@ -44,15 +44,15 @@ if __name__ == '__main__':
         numCPUs = int(sys.argv[7])
         datadir= scriptdir+'/'
     else:
-        datafile='E2W10Lz100K.csv'
+        datafile='E2W10Lz100K(old).csv'
 
         minL = 10
         maxL= 30
 
-        minC=.20
-        maxC=.40
+        minC=.27
+        maxC=.33
 
-        resamplesize = 40 # number of resamples
+        resamplesize = 12# number of resamples
         numCPUs = 2 # number of processors to use
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
     param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
     use_bounds = True
-    displayPlots=False
+    displayPlots=True
 
     # orders of expansion
     n_R = 3#3
@@ -229,7 +229,18 @@ if __name__ == '__main__':
         chi = np.dot(powers_of_t_chi, b)
         chi_exp_L = (np.abs(chi) ** (nu)) * L
         chi_L_exp = chi * L ** (1 / nu)
-        ax1.scatter(chi_exp_L, Lambda)
+        #ax1.scatter(chi_exp_L,Lambda)
+        cleAbove=chi_exp_L[L>24]
+        cleBelow=chi_exp_L[L<=24]
+        lAbove=Lambda[L>24]
+        lBelow=Lambda[L<=24]
+
+        
+        ax1.scatter(cleBelow, lBelow,marker='o',s=4)
+        ax1.scatter(cleAbove, lAbove,marker='o',s=4,c='red')
+        
+        
+
         #ax2.scatter(chi_L_exp, Lambda)
         ax1.set_ylabel(r'$\Lambda$', fontsize=fs)
         # ax1.set_ylabel(r'$g$', fontsize=fs)
@@ -442,7 +453,7 @@ if __name__ == '__main__':
             lbl='W='
         else:
             lbl='c='
-        ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,4)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=5)
+        ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,4)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=0)
         #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
 
     ax3.set_xlabel('L', fontsize=fs)
