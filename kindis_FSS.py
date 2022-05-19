@@ -47,20 +47,20 @@ if __name__ == '__main__':
         datafile='E2W10Lz100K.csv'
 
         minL = 10
-        maxL= 28
+        maxL= 30
 
         minC=.20
         maxC=.40
 
-        resamplesize = 1 # number of resamples
-        numCPUs = 1 # number of processors to use
+        resamplesize = 40 # number of resamples
+        numCPUs = 2 # number of processors to use
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
 
     gen_repeats=1000
 
-    pdf_name_identifier='-'+str(resamplesize)+'rs'+'relavant'#"high-resample"#will be added to the 
+    pdf_name_identifier='-'+str(resamplesize)+'rs'#"high-resample"#will be added to the 
 
     window_width = 1.0 #width of window
     window_offset = 0.0  #  distance from window center to near edge of window
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
     param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
     use_bounds = True
-    displayPlots=True
+    displayPlots=False
 
     # orders of expansion
     n_R = 3#3
@@ -497,13 +497,13 @@ if __name__ == '__main__':
 
 
     #datastring='%f, %f, %f, %f, %f' % (solution[0], solution[1], window_center, window_width, window_offset)
-    csv_column_names= ['Date','Cc','Nu','Min L', 'Max L', 'Run time', 'CPUs','Bootstrap Resample size',
+    csv_column_names= ['Date','Cc','Cc err upper','Cc err lower','Nu','Nu err upper','Nu err lower','Min L', 'Max L', 'Run time', 'CPUs','Bootstrap Resample size',
                         'Forced bounds','Crit bound lower', 'Crit bound upper','Nu bound lower','Nu bound upper',
                         'Gen Repeats', 'n_R','n_I','m_R','m_I',
                         'Window center', 'Window width','Window offset','Plot pdf','Data files used']
 
 
-    datacsv=[now.strftime("%D %H:%M"), cc, nuval, minL, maxL, exet.removesuffix('s'),numCPUs, resamplesize,
+    datacsv=[now.strftime("%D %H:%M"), cc, round(TcCI[0], 3),round(TcCI[1], 3),round(Nufinal,3),round(nu_1CI[0], 3),round(nu_1CI[1], 3), minL, maxL, exet.removesuffix('s'),numCPUs, resamplesize,
                 use_bounds,crit_bound_lower,crit_bound_upper,nu_bound_lower,nu_bound_upper,
                 gen_repeats,n_R,n_I,m_R,m_I,
                 window_center, window_width, window_offset,plot_name,data_files_used]
