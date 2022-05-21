@@ -29,6 +29,11 @@ scriptdir=os.getcwd() #os.path.dirname(__file__)
 datadir= os.path.join(scriptdir, 'data\\')#static ..\data\
 outputdir=os.path.join(scriptdir, 'output\\')#static ..\data\
 
+
+def printV(str,v=True):
+    if v:
+        print(str)
+
 def openfile(filename):
     f = open(filename, "r+")
     output = defaultdict(list)
@@ -63,7 +68,9 @@ def openfile(filename):
     return output
 
 
-def stats_L(file,warnc,bigc):
+
+
+def stats_L(file,warnc,bigc,verbose=True):
     if file.endswith('.txt'):
         data=openfile(file)
     else:
@@ -72,7 +79,7 @@ def stats_L(file,warnc,bigc):
     Lz=np.array(data['Lz'])
     L=np.array(data['L'])
     uniL=np.unique(L)
-    uniLz=np.unique(Lz)
+    #uniLz=np.unique(Lz)
     
     for l in uniL:
         curdata=data[L[:]==l]
@@ -94,9 +101,9 @@ def stats_L(file,warnc,bigc):
             outstr+=" Avg Runtime= %.1fm," % (avgR)
 
         #outstr+=" Min= %.0fm, Max= %.0fm" % (np.min(t),np.max(t))
-        outstr+=""
+        cstr+=""
         
-        print(outstr)
+        printV(outstr,verbose)
         
         #print(uniC)
         for ci in uniC:
@@ -116,82 +123,62 @@ def stats_L(file,warnc,bigc):
             if count < warnc or count > bigc:
                 cstr+=f"{bcolors.ENDC}"
             cstr+=", "
-        print(cstr)
-        print("----------------------------------")
+        printV(cstr,verbose)
+        printV("----------------------------------",verbose)
 
 
-def stats_C(file,warnc,bigc):
+def stats_C(file,warnL,bigL,verbose=True):
     if file.endswith('.txt'):
         data=openfile(file)
     else:
         data= pd.read_csv(file) 
     
-    Lz=np.array(data['Lz'])
-    C=np.array(data['C'])
-    uniC=np.unique(c)
-    uniLz=np.unique(Lz)
+    
+    C=np.array(data['c'])
+    uniC=np.unique(C)
+
     
     for c in uniC:
         curdata=data[C[:]==c]
         
-        cstr=""
+        L=np.array(curdata['L'])
+        uniL=np.unique(L)
 
-        t=runt/60
-        c=np.array(curdata['c'])
+        Lstr=''
+        outstr=''
+        #c=np.array(curdata['c'])
         
-        minC=np.min(c)
-        maxC=np.max(c)
-        avgR=np.average(t)
 
-        outstr=f"{bcolors.OKBLUE}"+"L= %d"%(l)+f"{bcolors.ENDC}"+", Count=%d, Avg Realizations=%.0f," % (curdata.size,curdata.size/uniC.size)
-        outstr+="# of C's=%d, C range=(%.3f,%.3f)" % (uniC.size, np.min(c),np.max(c))
-        if avgR > 120:
-            outstr+=" Avg Runtime= %.1fh," % (avgR/60)
-        else:
-            outstr+=" Avg Runtime= %.1fm," % (avgR)
 
-        #outstr+=" Min= %.0fm, Max= %.0fm" % (np.min(t),np.max(t))
-        outstr+=""
         
-        print(outstr)
+
+        outstr=f"{bcolors.OKBLUE}"+"c= %.5f"%(c)+f"{bcolors.ENDC}"
+        outstr+=", # of L's=%d, L range=(%d,%d)" % (uniL.size, np.min(L),np.max(L))
         
-        #print(uniC)
-        for ci in uniC:
-            count=c[c[:]==ci].size
-
-
-            
+        printV(outstr,verbose)
+        for li in uniL:
+            count=L[L[:]==li].size
+        
             #if ci < .271:
                 #continue
-            if count < warnc:
-                cstr+= f"{bcolors.FAIL}"
-            elif count > bigc:
-                cstr+= f"{bcolors.WARNING}"
+            if count < warnL:
+                Lstr+= f"{bcolors.FAIL}"
+            elif count > bigL:
+                Lstr+= f"{bcolors.WARNING}"
 
-            cstr+= "%.3f=%d"%(ci,count)
-             
-            if count < warnc or count > bigc:
-                cstr+=f"{bcolors.ENDC}"
-            cstr+=", "
-        print(cstr)
-        print("----------------------------------")
-
-# def combine(fl,csvfile):
-#     df=pd.DataFrame()
-#     for f in fl:
-#         fdict=openfile(f)
-#         df=df.append(pd.DataFrame.from_dict(fdict))
-        
-#     pd.DataFrame(df).to_csv(csvfile,mode='a+')
-
-def printV(str,v=True):
-    if v:
-        print(str)
+            Lstr+= "%d=%d"%(li,count)
+                
+            if count < warnL or count > bigL:
+                Lstr+=f"{bcolors.ENDC}"
+            Lstr+=", "
+        printV(Lstr,verbose)
+        printV("----------------------------------",verbose)
 
 
 
 
-def combine(folder,E,W,min_realizations):
+
+def combine(folder,E,W,min_realizations,verbose=True):
     ##
     ##Combines all data for specific parameters into a new csv
     ##
@@ -199,14 +186,13 @@ def combine(folder,E,W,min_realizations):
     df=pd.DataFrame()
     minreal=min_realizations
     tstdir=datadir+folder#+'\\E2W10-L10-24''\\E2W12'
-    verbose=False
 
     for root, dirs, files in os.walk(tstdir):
         for name in files:
             filepath=os.path.join(root, name)
             bad=False
             badnames=['all','combo','bad','offdiag']
-            print(name)
+            printV(name,verbose)
             for b in badnames:
                 if b in name or name.endswith('.csv'):
                     bad=True
@@ -282,3 +268,35 @@ def combine(folder,E,W,min_realizations):
     #     for c in uniC:
     #         outstr+= "(%.3f-%d)"%(c,cd[cd[:]==c].size)
     #     #print(outstr)
+
+
+def create_shell_script(name,jobname,cpus,params,array='',prio='med2',time='10-00:00:00'):
+    with open (name, 'w') as rsh:
+        sbnl='\n#SBATCH '
+        #!/bin/bash
+        #
+        #$ -cwd
+        #$ -j y
+        #$ -S /bin/bash
+        rsh.write('#!/bin/bash\n#$ -cwd\n#$ -j y\n#$ -S /bin/bash')
+        #SBATCH -c 11
+        #SBATCH --time=10-00:00:00
+        rsh.write('\n#SBATCH -c %d\n#SBATCH --time=10-00:00:00') % (cpus,time)
+        #SBATCH --job-name="jobname"
+        rsh.write('\n#SBATCH --job-name="%s"') % (jobname)
+        #SBATCH -p prio
+        rsh.write('\n#SBATCH -p %s') % (prio)
+        #SBATCH --array=10-20:1
+        if array.len != 0:
+                rsh.write('\n#SBATCH --array=%s')
+
+        
+        
+
+        
+
+
+
+#SBATCH --array=10-20:1'
+
+
