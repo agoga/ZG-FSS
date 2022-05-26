@@ -53,14 +53,14 @@ if __name__ == '__main__':
         maxC=.33
 
         resamplesize = 40# number of resamples
-        numCPUs = 2 # number of processors to use
+        numCPUs = 1 # number of processors to use
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
 
     gen_repeats=1000
 
-    pdf_name_identifier='8realsmin'#'-'+str(resamplesize)+'rs'#"high-resample"#will be added to the 
+    pdf_name_identifier='-nomin'#'-'+str(resamplesize)+'rs'#"high-resample"#will be added to the 
     data_identifier='HR8'
 
     window_width = 1.0 #width of window
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         if show:
             plt.show()
 
-    for maxL in np.arange(20,31):
+    for maxL in np.arange(24,30):
         print('Max L:'+str(maxL))
         class objective_function:
             def __init__(self,Lval,Tvarval,Lambda):
