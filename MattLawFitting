@@ -30,16 +30,17 @@ def hh(T,pre,t0):
     rho=pre*np.exp((t0/T)**0.5)
     return 1/rho
 
-def f(T,so,sm,E,val,s):
+def f(T,sio,smo,E,val,t0,a,n,s):
     kbev=1000*8.617333262*10**-5 #meV/K
-    si=so*np.exp(-E/(kbev*T))
+    si=sio*np.exp(-E/(kbev*T))
+    sm=smo/(1+a*(T/t0)**n)
     sigma=sm**(1-s)*(si**s+val*sm**s)
     return sigma
 
-vals1,errs1=so.curve_fit(f,T,grains[:,0],bounds=(0,np.inf))
-vals2,errs2=so.curve_fit(f,T,grains[:,1],bounds=(0,np.inf))
-vals3,errs3=so.curve_fit(f,T,grains[:,2],bounds=(0,np.inf))
-vals4,errs4=so.curve_fit(f,T,grains[:,3],bounds=(0,np.inf))
+vals1,errs1=so.curve_fit(f,T,grains[:,0],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
+vals2,errs2=so.curve_fit(f,T,grains[:,1],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
+vals3,errs3=so.curve_fit(f,T,grains[:,2],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
+vals4,errs4=so.curve_fit(f,T,grains[:,3],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
 
 perr1 = np.sqrt(np.diag(errs1))
 perr2 = np.sqrt(np.diag(errs2))
@@ -72,10 +73,10 @@ plt.plot(T, f(T, *vals3), 'g--',label='Fit 3, Ea={:.2f} meV'.format(Ea3))
 plt.plot(T, f(T, *vals4), 'k--',label='Fit 4, Ea={:.2f} meV'.format(Ea4))
 '''
 
-plt.plot(T, f(T, *vals1), 'r--',label='Fit 1')
-plt.plot(T, f(T, *vals2), 'b--',label='Fit 2')
-plt.plot(T, f(T, *vals3), 'g--',label='Fit 3')
-plt.plot(T, f(T, *vals4), 'k--',label='Fit 4')
+plt.plot(T, f(T, *vals1), 'r--',label='Fit 1, n={}'.format(vals1[-2]))
+plt.plot(T, f(T, *vals2), 'b--',label='Fit 2, n={}'.format(vals2[-2]))
+plt.plot(T, f(T, *vals3), 'g--',label='Fit 3, n={}'.format(vals3[-2]))
+plt.plot(T, f(T, *vals4), 'k--',label='Fit 4, n={}'.format(vals4[-2]))
 plt.yscale('log')
 plt.title('Fit with Gergely Notes',fontsize=24)
 plt.legend(loc='lower center',ncol=2)
