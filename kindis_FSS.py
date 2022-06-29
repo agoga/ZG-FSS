@@ -92,7 +92,32 @@ if __name__ == '__main__':
                                 + [[param_bound_lower, param_bound_upper]] * (numParams))
                 bounds = np.transpose(bounds)
                 return (bounds[0,:], bounds[1,:])      
+
+    plotRaw=True
+    if plotRaw:
+            fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+            box = ax3.get_position()
+            box.x0 = box.x0 - 0.05
+            box.x1 = box.x1 - 0.05
+            ax3.set_position(box)
+    else:
+        fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
+    
+    timestart=timeend=0
+
+    def timing(name='',verbose=True):
+        global timestart,timeend
+        if timestart == 0:
+            timestart = time.time()
+        else:
+            timeend = time.time()
+            tot=timeend-timestart
+            if verbose:
+                print(name + ' took ' + str(tot) + 's')
+            timestart=0
         
+        
+
     def plotScalingFunc(T, L, args):
         sz=6#Size of the scaling curve points
         markerlist=(',', '+', '.', 'o', '*','v', '^', '<', '>', 's', '8', 'p')
@@ -291,7 +316,7 @@ if __name__ == '__main__':
         if show:
             plt.show()
 
-    def runFssAnalysis(rssize,bL,bTvar,bLamda):
+    def runFssAnalysis(rssize,bL,bTvar,bLamda,verbose=False):
         #list containing problem descriptions for each bootstrap resample
         problist = [pg.problem(objective_function(bL[i, :], bTvar[i, :], bLambda[i, :])) for i in range(rssize)]
         probbackup = problist
@@ -311,14 +336,16 @@ if __name__ == '__main__':
         #best_main = pop.champion_x
 
 
-        print("Starting bootstrap")
+        #timing()
         islands = [pg.island(algo=algo, prob=problist[i], size=100, udi=pg.mp_island()) for i in range(rssize)]
+        #timing("Starting bootstrap")
 
-    
-
+        #timing()
         _ = [isl.evolve() for isl in islands]
         solutions = np.array([])
+        #timing('@a')
 
+        #timing()
         #resample and Cc check loop
         while solutions.shape[0]<rssize:
 
@@ -337,10 +364,11 @@ if __name__ == '__main__':
                     else:
                         solutions = np.vstack([solutions, solution])
 
-                    if solutions.shape[0] == cCheck:
-                        lma=9
-                    else: 
-                        print('Bootstrapping {}% Tc: {}, nu: {} from island {}'.format(round(len(solutions) / rssize * 100),
+                    percent=round(len(solutions) / rssize * 100)
+                    #timing(str(percent)+'%')
+                    #timing()
+                    
+                    print('Bootstrapping {}% Tc: {}, nu: {} from island {}'.format(percent,
                                                                         round(solution[0], 3),
                                                                         round(solution[1], 3), ind))
                     
@@ -351,12 +379,14 @@ if __name__ == '__main__':
         _ = [isl.wait() for isl in islands]
         return solutions,Tcrange,Nurange
 
-    def cullAndClenseData(data,minL,maxL,window_center,window_offset,window_width,minC,maxC,minCloseC,maxCloseC):
+    def cullAndClenseData(data,minL,maxL,cc,window_center,window_offset,window_width,cwidth,closewidth):
+
         pre=len(np.unique(data[:,0]))
         #omit L less than minL to control finite size effects
         data = data[data[:,0]>=minL]
         data = data[data[:,0]<=maxL]
         post=len(np.unique(data[:,0]))
+
         if post != pre:
             print(f'Cut {pre - post} values from L bounds')
 
@@ -365,34 +395,37 @@ if __name__ == '__main__':
         data = data[np.abs(data[:,2]-window_center)<=window_offset+window_width]
         data = data[np.abs(data[:,2]-window_center)>=window_offset]
         post=len(np.unique(data[:,2]))
+
         if post != pre:
             print(f'Cut {pre - post} values from window bounds')
 
 
-        
-        pre=len(np.unique(data[:,2]))
-        data = data[data[:,2]>=minC]
-        data = data[data[:,2]<=maxC]
-        post=len(np.unique(data[:,2]))
-        if post != pre:
-            print(f'Cut {pre - post} c values for being too far from criticality')
-        
-        #print('unic: ' + str(np.unique(data[:,2])))
+        if cc!=0:
+            minC=cc-cwidth*cc#.2935#
+            maxC=cc+cwidth*cc
 
-        if closewidth != 0:
+            minCloseC=cc-closewidth*cc
+            maxCloseC=cc+closewidth*cc
             pre=len(np.unique(data[:,2]))
-            mask= (data[:,2]>=minCloseC) & (data[:,2]<=maxCloseC)
-            data = data[np.logical_not(mask)]
-
+            data = data[data[:,2]>=minC]
+            data = data[data[:,2]<=maxC]
             post=len(np.unique(data[:,2]))
             if post != pre:
-                print(f'Cut {pre - post} c values for being too close to criticality')
+                print(f'Cut {pre - post} c values for being too far from criticality')
+            
+            #print('unic: ' + str(np.unique(data[:,2])))
+
+            if closewidth != 0:
+                pre=len(np.unique(data[:,2]))
+                mask= (data[:,2]>=minCloseC) & (data[:,2]<=maxCloseC)
+                data = data[np.logical_not(mask)]
+
+                post=len(np.unique(data[:,2]))
+                if post != pre:
+                    print(f'Cut {pre - post} c values for being too close to criticality')
 
             #print('unic: ' + str(np.unique(data[:,2])))
         
-        
-
-
         
 
         #Bad test - trying removing c's that are too precise lol
@@ -431,6 +464,7 @@ if __name__ == '__main__':
         return Lambda, L, c, W, sigma, g
 
 
+#END OF FUNCTION DEFINITIONS
 
 
 #initializations
@@ -456,31 +490,30 @@ if __name__ == '__main__':
     else:
         datafile='E2W10Lz100K.csv'
 
-        minL = 20
+        minL = 16
 
+        maxL=30
 
-        maxL_lower=30
-        maxL_upper= 30
+        maxL_lower= maxL
+        maxL_upper= maxL
 
 
         #E0CC=.29
         E2CC=.29
 
+        #IF THIS IS 0 THEN WE WILL DO A CRITC CHECK
+        critC=0
 
-        cwidth=.01#use C values within 11% of the critical C
+        cwidth=.11#use C values within 11% of the critical C
         closewidth=0#.004#drop c values within .4% of critical C
-
-        minC=E2CC-cwidth*E2CC#.2935#
-        maxC=E2CC+cwidth*E2CC
-
-        minCloseC=E2CC-closewidth*E2CC
-        maxCloseC=E2CC+closewidth*E2CC
 
         
         #minC=minCE0=E0CC-cwidth*E0CC
         #maxC=maxCEo=E0CC+cwidth*E0CC
-        cCheck=3
+        
+        
         # number of resamples
+        numCritCheck=2
         resamplesize = 12
 
 
@@ -488,6 +521,8 @@ if __name__ == '__main__':
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
+    verbose = True
+    fs = 18 #font size 
 
     gen_repeats=1000
 
@@ -500,10 +535,10 @@ if __name__ == '__main__':
 
     cutoffdate = datetime.now()#datetime(2022,4,30)
 
-    crit_bound_lower, crit_bound_upper = 0.2, 0.4  # critical value bounds
+    crit_bound_lower, crit_bound_upper = 0.01, .99  # critical value bounds
 
     #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
-    nu_bound_lower, nu_bound_upper = 1, 1.8  # nu bounds
+    nu_bound_lower, nu_bound_upper = 0.1, 3  # nu bounds
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
     param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
     use_bounds = True
@@ -526,7 +561,7 @@ if __name__ == '__main__':
     for maxL in lrange:
         print('Max L:'+str(maxL))
 
-
+        timing('data validation',verbose)
         #data validation
         if n_I > 0:
             numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
@@ -557,118 +592,53 @@ if __name__ == '__main__':
         data[:, 3] = 1 / (data[:, 0] * data[:, 3])  # L, W, c, normalized localization length
         #print(np.shape(data))
 
+
+
         # sort according to L
         data = data[np.argsort(data[:, 0])]
-
-        Lambda, L, c, W, sigma, g = cullAndClenseData(data,minL,maxL,window_center,window_offset,window_width,minC,maxC,minCloseC,maxCloseC)
-#END CULL FUNCTION
-
-
-        # set the driving parameter
-        Tvar = c
-
-        randints, bLambda, bL, bTvar, bsigma = bootVals(Lambda, L, Tvar, sigma, resamplesize)  # getting new variables with prefix b to designate bootstrap resamples
-        print(str(numParams) + "+3 parameters")
-
-        
-        if resamplesize == 1 and bL.ndim == 1:  # fix edge case
-            bL = np.expand_dims(L, 0)
-            bTvar = np.expand_dims(Tvar, 0)
-            bLambda = np.expand_dims(Lambda, 0)
-
-
-        
-
-        if plotRaw:
-            fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
-            box = ax3.get_position()
-            box.x0 = box.x0 - 0.05
-            box.x1 = box.x1 - 0.05
-            ax3.set_position(box)
-        else:
-            fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
-
-        fs = 18 #font size
-
+        timing('data validation')
+        ranOnce=False
         # now do a cCheck
-        if cCheck > 0:
-            solutions,Tcrange, Nurange = runFssAnalysis(cCheck,bL,bTvar,bLambda)
+        #Two cases, we want to check for the critical c or we dont
+        while critC ==0 or ranOnce is False:
+            
+            if critC == 0:
+                numRun=numCritCheck
+                curclosewidth=0#don't exclude any vals
+            else:
+                numRun=resamplesize
+                curclosewidth = closewidth
+                ranOnce = True
 
-        solutions,Tcrange, Nurange = runFssAnalysis(resamplesize,bL,bTvar,bLambda)
-    #     if resamplesize == 1 and bL.ndim == 1:  # fix edge case
-    #         bL = np.expand_dims(L, 0)
-    #         bTvar = np.expand_dims(Tvar, 0)
-    #         bLambda = np.expand_dims(Lambda, 0)
+            Lambda, L, c, W, sigma, g = cullAndClenseData(data,minL,maxL,critC,window_center,window_offset,window_width,cwidth,curclosewidth)
 
 
-    #     #list containing problem descriptions for each bootstrap resample
-    #     problist = [pg.problem(objective_function(bL[i, :], bTvar[i, :], bLambda[i, :])) for i in range(resamplesize)]
-    #     probbackup = problist
+            # set the driving parameter
+            Tvar = c
+
+            randints, bLambda, bL, bTvar, bsigma = bootVals(Lambda, L, Tvar, sigma, resamplesize)  # getting new variables with prefix b to designate bootstrap resamples
+            print(str(numParams) + "+3 parameters")
+
+            
+            if numRun == 1 and bL.ndim == 1:  # fix edge case
+                bL = np.expand_dims(L, 0)
+                bTvar = np.expand_dims(Tvar, 0)
+                bLambda = np.expand_dims(Lambda, 0)
 
 
-    #     #definition of the algorithm
-    #     algo = pg.algorithm(pg.cmaes(gen=gen_repeats, force_bounds=use_bounds, ftol=1e-8))
+            
 
-    #     pg.mp_island.init_pool(processes=numCPUs)
+            solutions,Tcrange, Nurange = runFssAnalysis(numRun,bL,bTvar,bLambda,verbose)
+            critC= round(np.median(Tcrange),3)
+            print('Found Cc of ' + str(critC))
+            
 
-    #     #print("Computing main fit")
-    #     #pop = pg.population(prob=objective_function(L, Tvar, Lambda), size=500)
-    #     #algo.evolve(pop)
+        #solutions,Tcrange, Nurange = runFssAnalysis(resamplesize,bL,bTvar,bLambda)
 
-    #     #best_main = pop.champion_x
+        print('Finished')
 
-    # #scaling 
-    #     print("Starting bootstrap")
-    #     islands = [pg.island(algo=algo, prob=problist[i], size=100, udi=pg.mp_island()) for i in range(resamplesize)]
 
-    #     if plotRaw:
-    #         fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
-    #         box = ax3.get_position()
-    #         box.x0 = box.x0 - 0.05
-    #         box.x1 = box.x1 - 0.05
-    #         ax3.set_position(box)
-    #     else:
-    #         fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
-
-    #     fs = 18 #font size
-
-    #     _ = [isl.evolve() for isl in islands]
-    #     solutions = np.array([])
-        #resample and Cc check loop
-        # while solutions.shape[0]<resamplesize:
-
-        #     for ind, isl in enumerate(islands):
-        #         if isl.status==pg.evolve_status.idle_error or isl.status==pg.evolve_status.busy_error:  # something blew up, try again
-        #             islands[ind] = pg.island(algo=algo, prob=probbackup[ind], size=100, udi=pg.mp_island())
-        #             islands[ind].evolve()
-        #             print('Island %i had an exception, restarting...' % ind)
-        #         if isl.status==pg.evolve_status.idle:  # completed normally, store the result
-        #             solution = isl.get_population().champion_x
-        #             score = isl.get_population().champion_f
-        #             Tcrange = np.append(Tcrange, solution[0])
-        #             Nurange = np.append(Nurange, solution[1])
-        #             if len(solutions)==0:
-        #                 solutions = np.expand_dims(solution, axis=0)
-        #             else:
-        #                 solutions = np.vstack([solutions, solution])
-
-        #             if solutions.shape[0] == cCheck:
-        #                 lma=9
-        #             else: 
-        #                 print('Bootstrapping {}% Tc: {}, nu: {} from island {}'.format(round(len(solutions) / resamplesize * 100),
-        #                                                                 round(solution[0], 3),
-        #                                                                 round(solution[1], 3), ind))
-                    
-        #             #finally, remove the island from the array so its not counted twice (or three times, ...)
-        #             del islands[ind]
-        #     time.sleep(1)
-
-        # _ = [isl.wait() for isl in islands]
-
-        #print(Nurange)
-        #print(Tcrange)
-
-    #results
+        #results
 
         TcChoke = np.percentile(Tcrange, [37.5, 62.5]) # tight range
         Tcrangef = Tcrange[Tcrange >= TcChoke[0]]
