@@ -18,7 +18,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 import config as cfg
 from datetime import datetime
-
+import itertools
 
 
 if __name__ == '__main__':
@@ -46,26 +46,43 @@ if __name__ == '__main__':
     else:
         datafile='E2W10Lz100K.csv'
 
-        minL = 10
-        maxL= 25
+        minL = 8
 
-        minC=.27
-        maxC=.33
+        maxL_lower=20
+        maxL_upper= 20
 
+
+        #E0CC=.29
+        E2CC=.306
+        cwidth=.1#use C values within 11% of the critical C
+        closewidth=.004#drop c values within .4% of critical C
+
+        minC=E2CC-cwidth*E2CC#.2935#
+        maxC=E2CC+cwidth*E2CC
+
+        minCloseC=E2CC-closewidth*E2CC
+        maxCloseC=E2CC+closewidth*E2CC
+
+        
+        #minC=minCE0=E0CC-cwidth*E0CC
+        #maxC=maxCEo=E0CC+cwidth*E0CC
+        
         resamplesize = 40# number of resamples
-        numCPUs = 1 # number of processors to use
+        numCPUs = 2 # number of processors to use
 
         datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
 
     gen_repeats=1000
 
-    pdf_name_identifier='-nomin'#'-'+str(resamplesize)+'rs'#"high-resample"#will be added to the 
-    data_identifier='HR8'
+    pdf_name_identifier=''#'-'+str(resamplesize)+'rs'#"high-resample"#will be added to the 
+    data_identifier=''
 
     window_width = 1.0 #width of window
     window_offset = 0.0  #  distance from window center to near edge of window
     window_center = 0.63
+
+    cutoffdate = datetime.now()#datetime(2022,4,30)
 
     crit_bound_lower, crit_bound_upper = 0.2, 0.4  # critical value bounds
     #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
@@ -73,7 +90,8 @@ if __name__ == '__main__':
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
     param_bound_lower, param_bound_upper = -500.0, 500.1  # all other bounds
     use_bounds = True
-    displayPlots=False
+    displayPlots=True
+    plotRaw=True
 
     # orders of expansion
     n_R = 3#3
@@ -110,6 +128,34 @@ if __name__ == '__main__':
                 sigmanew=np.vstack([sigmanew,sigma[outputtemp]])
         return output,Lambdanew,Lnew,Tvarnew,sigmanew
 
+    def verifyCL(d,minL,maxL):#remove all data which do not have C values for all L.
+        
+        d=d[d['L']<=maxL]
+        data=d[d['L']>=minL]
+
+        uniL=np.unique(data['L'])
+        lenL=len(uniL)
+
+        print('len l: ' + str(lenL))
+        uniC=np.unique(data['c'])
+
+        for ci in uniC:
+            allC=data[data['c']==ci]
+
+            curUniL=np.unique(allC['L'])
+            curLenL=len(curUniL)
+
+            if curLenL != lenL:
+                data= data[data['c']!=ci]
+                #print('not enough L for c= ' + str(ci))
+            #else:
+                #print('enough L for c= ' + str(ci))
+
+        return data
+
+
+
+
     def compressLambda(Lambda_in, L_in, c_in, sigma_in):
         #input: Lambda, L, c, sigma data. May be multiple Lambdas per (c,L)
         #output: for each (c,L), weighted average and std dev
@@ -144,7 +190,12 @@ if __name__ == '__main__':
         if show:
             plt.show()
 
-    for maxL in np.arange(24,30):
+    lrange=np.arange(maxL_lower,maxL_upper)
+    if maxL_upper == maxL_lower:
+        lrange=np.arange(maxL_lower,maxL_upper+1)
+
+    #main loop
+    for maxL in lrange:
         print('Max L:'+str(maxL))
         class objective_function:
             def __init__(self,Lval,Tvarval,Lambda):
@@ -218,6 +269,11 @@ if __name__ == '__main__':
                 
         
         def plotScalingFunc(T, L, args):
+            sz=6#Size of the scaling curve points
+            markerlist=(',', '+', '.', 'o', '*','v', '^', '<', '>', 's', '8', 'p')
+            
+            marker = itertools.cycle(markerlist) 
+
             Tc = args[0]
             nu = args[1]
             y = args[2]
@@ -241,13 +297,16 @@ if __name__ == '__main__':
                 if li < 15:
                     co='black'
                 elif li < 20:
-                    co='black'
+                    co='yellow'
                 elif li < 25:
                     co='orange'
                 else:
                     co='red'
 
-                ax1.scatter(cle, lam,marker='o',s=4,c=co)
+                #@TODO remove if you want the scaling curve colorized based on L vals
+                #co='black'
+
+                ax1.scatter(cle, lam,marker=marker.next(),s=sz,c=co)
             
             # cleAbove=chi_exp_L[L>24]
             # cleBelow=chi_exp_L[L<=24]
@@ -265,8 +324,56 @@ if __name__ == '__main__':
             #ax2.set_yscale('log')
             ax1.set_yscale('log')
             
+        def plotRawData(Tvar,L,args):
+            legendlimiter=0
+            legendskip=2#if this is 2 skip every 3rd c value in the legend
+             # Plot raw data
+            Lrange = Lrange = np.unique(L)
+            for T in np.unique(Tvar)[::-1]:
+                toPlotX = []
+                toPlotY = []
+                Yerror = []
+                for i, Tv in enumerate(Tvar):
+                    if T == Tv:
+                        toPlotY.append(Lambda[i])
+                        toPlotX.append(L[i])
+                        Yerror.append(sigma[i])
+                npX = np.array(toPlotX)
+                npY = np.array(toPlotY)
+                npYerror= np.array(Yerror)
+                inds = npX.argsort()  # sort the data according to L to make sure it plots right
+                npX = npX[inds]
+                npY = npY[inds]
+                npYerror = npYerror[inds]
+                if np.array_equal(Tvar,W):
+                    lbl='W='
+                else:
+                    lbl='c='
+                
+                if legendlimiter<legendskip:
+                    lbl=lbl + str(round(T,4))
+                    legendlimiter = legendlimiter+1
+                else:
+                    lbl='_nolegend_'
+                    legendlimiter = 0
 
 
+                ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl, ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=0)
+                #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
+
+            ax3.set_xlabel('L', fontsize=fs)
+            #ax3.set_xscale('log')
+            ax3.set_yscale('log')
+            Lrange = np.arange(min(Lrange),max(Lrange)+1,step=2,dtype=int)
+            ax3.set_xticks(Lrange)
+            ax3.set_xticklabels(list(map(str, Lrange)))
+            #ax3.xaxis.set_minor_formatter(mticker.ScalarFormatter())
+            #plt.ticklabel_format(axis='x',style='plain')
+            #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
+            ax3.legend(loc='upper right', bbox_to_anchor=(1.4, 1.05))
+            
+
+    
     #data validation
         if n_I > 0:
             numParams = (n_I + 1) * (n_R + 1) + m_R + m_I - 1
@@ -278,6 +385,15 @@ if __name__ == '__main__':
         #input = np.array(openfile(tmpdir+datafile))
         df = pd.read_csv(datadir+datafile,engine='python')#,delimiter='\t')#,encoding='utf8',sep=',',
 
+        print(len(df.index))
+        df['date']=pd.to_datetime(df['date'])
+        df=df[df['date']<cutoffdate]
+        print(len(df.index))
+
+
+        #df=verifyCL(df,minL,maxL)#@TODO removes all c values that do not have a value for EVERY L
+
+        print(len(df.index))
         print('Loaded ' +str(len(df.index))+ ' total values')
         #cenrange = np.unique(input[:,6])
         #data = input[:, 0:7]  # L, W, c, LE,std,g,runtime
@@ -291,42 +407,74 @@ if __name__ == '__main__':
         data = data[np.argsort(data[:, 0])]
 
 
-        pre=len(data[:,0])
+        pre=len(np.unique(data[:,0]))
         #omit L less than minL to control finite size effects
         data = data[data[:,0]>=minL]
         data = data[data[:,0]<=maxL]
-        post=len(data[:,0])
+        post=len(np.unique(data[:,0]))
         if post != pre:
             print(f'Cut {pre - post} values from L bounds')
 
         
-        pre=len(data[:,2])
+        pre=len(np.unique(data[:,2]))
         data = data[np.abs(data[:,2]-window_center)<=window_offset+window_width]
         data = data[np.abs(data[:,2]-window_center)>=window_offset]
-        post=len(data[:,2])
+        post=len(np.unique(data[:,2]))
         if post != pre:
             print(f'Cut {pre - post} values from window bounds')
 
 
         
-        pre=len(data[:,2])
-        
+        pre=len(np.unique(data[:,2]))
         data = data[data[:,2]>=minC]
         data = data[data[:,2]<=maxC]
-
-        post=len(data[:,2])
+        post=len(np.unique(data[:,2]))
         if post != pre:
-            print(f'Cut {pre - post} values from c bounds')
+            print(f'Cut {pre - post} c values for being too far from criticality')
+        
+        #print('unic: ' + str(np.unique(data[:,2])))
 
-        print('Using ' +str(len(data[:,0]))+ ' total values')
+        if closewidth != 0:
+            pre=len(np.unique(data[:,2]))
+            mask= (data[:,2]>=minCloseC) & (data[:,2]<=maxCloseC)
+            data = data[np.logical_not(mask)]
+
+            post=len(np.unique(data[:,2]))
+            if post != pre:
+                print(f'Cut {pre - post} c values for being too close to criticality')
+
+            #print('unic: ' + str(np.unique(data[:,2])))
+        
+        
+
+        print('Using ' +str(len(data[:,0]))+ ' total entries')
+        
+
+        #Bad test - trying removing c's that are too precise lol
+        #print(len(data[:,2].astype(str)))
+        #lenv=np.vectorize(len)
+        #strv=np.vectorize(str)
+        #print(lenv(strv(data[:,2])))
+        #data = data[lenv(strv(data[:,2]))<6]
+
+
         Lrange = np.unique(data[:, 0])
         Wrange = np.unique(data[:, 1])
         crange = np.unique(data[:, 2])
+        lenL=len(Lrange)
+
+        # for i in crange:
+        #     print(i)
+        #     print(len(str(i)))
 
         L = data[:, 0]
         W = data[:, 1]
         c = data[:, 2]
         Lambda = data[:, 3]
+
+        #c=c.round(3)#@TODO this is bad probably but the plots are bad if not
+        print('Using ' +str(len(data[:,0]))+ ' total values')
+        print('unic: ' + str(np.unique(c)))
 
         sigma = np.array(df['std'].to_list())
         #sigma = input[:, 4]
@@ -335,6 +483,8 @@ if __name__ == '__main__':
 
         # Eliminates multiple Lambdas per (c,L) pair via average (weighted by std dev) and propagates uncertainty through sigma
         Lambda, L, c, sigma = compressLambda(Lambda, L, c, sigma)
+
+
         # set the driving parameter
         Tvar = c
 
@@ -373,7 +523,15 @@ if __name__ == '__main__':
         print("Starting bootstrap")
         islands = [pg.island(algo=algo, prob=problist[i], size=100, udi=pg.mp_island()) for i in range(resamplesize)]
 
-        fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+        if plotRaw:
+            fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+            box = ax3.get_position()
+            box.x0 = box.x0 - 0.05
+            box.x1 = box.x1 - 0.05
+            ax3.set_position(box)
+        else:
+            fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
+
         fs = 18 #font size
 
         _ = [isl.evolve() for isl in islands]
@@ -445,40 +603,8 @@ if __name__ == '__main__':
 
         plotScalingFunc(Tvar, L, solution)
 
-        # Plot raw data
-        for T in np.unique(Tvar)[::-1]:
-            toPlotX = []
-            toPlotY = []
-            Yerror = []
-            for i, Tv in enumerate(Tvar):
-                if T == Tv:
-                    toPlotY.append(Lambda[i])
-                    toPlotX.append(L[i])
-                    Yerror.append(sigma[i])
-            npX = np.array(toPlotX)
-            npY = np.array(toPlotY)
-            npYerror= np.array(Yerror)
-            inds = npX.argsort()  # sort the data according to L to make sure it plots right
-            npX = npX[inds]
-            npY = npY[inds]
-            npYerror = npYerror[inds]
-            if np.array_equal(Tvar,W):
-                lbl='W='
-            else:
-                lbl='c='
-            ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl + str(round(T,4)), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=0)
-            #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
-
-        ax3.set_xlabel('L', fontsize=fs)
-        #ax3.set_xscale('log')
-        ax3.set_yscale('log')
-        Lrange = np.arange(min(Lrange),max(Lrange)+1,step=2)
-        ax3.set_xticks(Lrange)
-        ax3.set_xticklabels(list(map(str, Lrange)))
-        #ax3.xaxis.set_minor_formatter(mticker.ScalarFormatter())
-        #plt.ticklabel_format(axis='x',style='plain')
-        ax3.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-        #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
+        if plotRaw:
+           plotRawData(Tvar,L,solution)
         
 
     #make title for plot, save figures, and store results data in a excel spreadsheet to analyze 
@@ -532,8 +658,16 @@ if __name__ == '__main__':
                     gen_repeats,n_R,n_I,m_R,m_I,
                     window_center, window_width, window_offset,data_identifier,plot_name,data_files_used]
 
-                    
-        csv_name=cfg.savecsv(datacsv,csv_column_names)
+                  
+        saved = False
+        while(not saved):
+            try:
+                csv_name=cfg.savecsv(datacsv,csv_column_names)
+            except:
+                input('Please close the csv then press enter to save again.')
+                continue
+            saved = True
+        
         print('Saved output files: %s & %s' % (fname,csv_name))
 
         showplt(plt,displayPlots)

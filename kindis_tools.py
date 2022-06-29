@@ -118,13 +118,43 @@ def stats_L(file,warnc,bigc,verbose=True):
             elif count > bigc:
                 cstr+= f"{bcolors.WARNING}"
 
-            cstr+= "%.3f=%d"%(ci,count)
+            cstr+= "%.4f=%d"%(ci,count)
              
             if count < warnc or count > bigc:
                 cstr+=f"{bcolors.ENDC}"
             cstr+=", "
         printV(cstr,verbose)
         printV("----------------------------------",verbose)
+
+def save_L_csv(file,out):
+    if file.endswith('.txt'):
+        print('fail')
+        return
+    else:
+        data= pd.read_csv(file) 
+    
+
+    L=np.array(data['L'])
+    uniL=np.unique(L)
+    #uniLz=np.unique(Lz)
+
+    c=np.array(data['c'])
+    uniCtot=np.unique(c)
+
+    df = pd.DataFrame()#columns=uniL,index=uniCtot)
+    for l in uniL:
+        curdata=data[L[:]==l]
+
+        c=np.array(curdata['c'])
+        uniC=np.unique(c)
+
+        for ci in uniC:
+            count=c[c[:]==ci].size
+
+            df.at[str(ci),str(l)]=count
+    
+
+    pd.DataFrame(df).to_csv(datadir+out+'.csv',mode='w')
 
 
 def stats_C(file,warnL,bigL,verbose=True):
@@ -178,7 +208,7 @@ def stats_C(file,warnL,bigL,verbose=True):
 
 
 
-def combine(folder,E,W,min_realizations,verbose=True):
+def combine(folder,E,W,LZ=None,min_realizations=0,verbose=True):
     ##
     ##Combines all data for specific parameters into a new csv
     ##
@@ -187,12 +217,16 @@ def combine(folder,E,W,min_realizations,verbose=True):
     minreal=min_realizations
     tstdir=datadir+folder#+'\\E2W10-L10-24''\\E2W12'
 
+    badnames=[]
+    goodnames=[]
+
     for root, dirs, files in os.walk(tstdir):
         for name in files:
             filepath=os.path.join(root, name)
             bad=False
             badnames=['all','combo','bad','offdiag']
-            printV(name,verbose)
+
+            
             for b in badnames:
                 if b in name or name.endswith('.csv'):
                     bad=True
@@ -208,18 +242,25 @@ def combine(folder,E,W,min_realizations,verbose=True):
                     continue
 
                 Lz=np.array(data['Lz'])
+                c=np.array(data['c'])
+
+
+
                 uniLz=np.unique(Lz)
                 uniE=np.unique(data['E'])
                 uniW=np.unique(data['W'])
-                c=np.array(data['c'])
                 unic=np.unique(data['c'])
+
                 
-
-                if 100000 in uniLz and E in uniE and W in uniW:
-                    printV(str(uniLz) + " " +str(name)+ ' success',verbose)
-
+                if (LZ in uniLz or LZ is None) and (E in uniE) and (W in uniW):
+                    #printV(str(uniLz) + " " +str(name)+ ' success',verbose)
+                    printV("success " +str(name),verbose)
                     df=df.append(pd.DataFrame.from_dict(data))
                 else:
+                    # print(LZ in uniLz or LZ is None)
+                    # print(E in uniE)
+                    # print(W in uniW)
+
                     printV(str(name)+ ' reject',verbose)
 
     uniE=np.unique(df['E'])
@@ -254,6 +295,14 @@ def combine(folder,E,W,min_realizations,verbose=True):
                             #print('here')
                             #print(dfw['fname'].unique())
                             #pd.DataFrame(df_fin).to_csv(datadir+newfname+'.csv',mode='w')
+
+                pre = len(df_fin.index)
+                df_fin.drop_duplicates(subset=['c','L','lyap'])#,'std','g'])
+                post=len(df_fin.index)
+
+                if post != pre:
+                    print(f'Cut {pre - post} duplicate entries')
+                
                 pd.DataFrame(df_fin).to_csv(datadir+newfname+'.csv',mode='w')
 
 
@@ -271,6 +320,33 @@ def combine(folder,E,W,min_realizations,verbose=True):
 
 
 def create_shell_script(name,jobname,cpus,params,array='',prio='med2',time='10-00:00:00'):
+
+    
+    import kindis_tools as kd
+    import pandas as pd
+
+
+    file = 'CurrentE0W10-LCVals.csv'
+    df= pd.read_csv(kd.datadir+file,index_col=0)
+    #df.set_index(df.columns[0])
+
+    print(df.at[0.271,'10'])
+
+    l=df[df==0].stack().index.tolist()
+    print(l)
+
+    #take that output and find replace for this 
+    #https://stackoverflow.com/questions/9713104/loop-over-tuples-in-bash
+
+    # for i in "c 3" "e 5"
+    # do
+    #     set -- $i # convert the "tuple" into the param args $1 $2...
+    #     echo $1 and $2
+    # done
+
+
+
+
     with open (name, 'w') as rsh:
         sbnl='\n#SBATCH '
         #!/bin/bash
