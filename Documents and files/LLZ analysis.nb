@@ -1,0 +1,86 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      2515,         78]
+NotebookOptionsPosition[      1945,         57]
+NotebookOutlinePosition[      2322,         73]
+CellTagsIndexPosition[      2279,         70]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{"dataraw", "=", 
+  RowBox[{
+  "Import", "[", 
+   "\"\<D:\\\\My Documents\\\\Academics\\\\Zimanyi Group\\\\All \
+Repositories\\\\ZG-FSS\\\\Documents and files\\\\LLZnumba.xlsx\>\"", 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.855702391582371*^9, 3.855702425476579*^9}, 
+   3.8557029498144503`*^9, {3.855702988256794*^9, 3.8557029885901117`*^9}, {
+   3.8557030654235897`*^9, 3.8557030740469403`*^9}, {3.855703107336053*^9, 
+   3.8557031116219683`*^9}, 
+   3.8557031421162157`*^9},ExpressionUUID->"bc066bab-6a01-48a5-ba38-\
+69d151cfc4ad"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "Import","nojmem",
+   "\"There was insufficient Java heap space for the operation. Try \
+increasing the Java Virtual Machine heap size.\"",2,4,4,17655725802261784973,
+   "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{
+  3.8557024264852467`*^9, 3.855702952652171*^9, 3.855702989968227*^9, 
+   3.855703069471284*^9, {3.8557031043070693`*^9, 3.855703121816126*^9}, 
+   3.8557031545834885`*^9},ExpressionUUID->"90e1a25a-87a5-448b-84dd-\
+fe6323fd86d1"],
+
+Cell[BoxData["$Failed"], "Output",
+ CellChangeTimes->{
+  3.855702426501753*^9, 3.85570295275417*^9, 3.855702990001215*^9, 
+   3.855703069575799*^9, {3.8557031043470707`*^9, 3.8557031218517513`*^9}, 
+   3.8557031546214886`*^9},ExpressionUUID->"6a78195b-9c2e-4ac8-9d9a-\
+60c8cd75da74"]
+}, Open  ]]
+},
+WindowSize->{1904, 997},
+WindowMargins->{{-74, Automatic}, {-157, Automatic}},
+Magnification:>1.4 Inherited,
+FrontEndVersion->"11.1 for Microsoft Windows (64-bit) (April 18, 2017)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 559, 12, 43, "Input", "ExpressionUUID" -> \
+"bc066bab-6a01-48a5-ba38-69d151cfc4ad"],
+Cell[1142, 36, 501, 11, 32, "Message", "ExpressionUUID" -> \
+"90e1a25a-87a5-448b-84dd-fe6323fd86d1"],
+Cell[1646, 49, 283, 5, 43, "Output", "ExpressionUUID" -> \
+"6a78195b-9c2e-4ac8-9d9a-60c8cd75da74"]
+}, Open  ]]
+}
+]
+*)
+
