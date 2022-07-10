@@ -70,12 +70,19 @@ def openfile(filename):
 
 
 
-def stats_L(file,warnc,bigc,verbose=True):
+def stats_L(file,warnc,bigc,cC=0,cpercent=0.1,verbose=True):
     if file.endswith('.txt'):
         data=openfile(file)
     else:
         data= pd.read_csv(file) 
     
+    if cC !=0:
+        print(cC)
+        minC = cC-cC*cpercent
+        maxC = cC+cC*cpercent
+        mask= (data['c']>=minC) & (data['c']<=maxC)
+        data = data[mask]
+
     Lz=np.array(data['Lz'])
     L=np.array(data['L'])
     uniL=np.unique(L)
@@ -157,17 +164,25 @@ def save_L_csv(file,out):
     pd.DataFrame(df).to_csv(datadir+out+'.csv',mode='w')
 
 
-def stats_C(file,warnL,bigL,verbose=True):
+def stats_C(file,lowL,bigL,cC=0,cpercent=0.1,verbose=True):
     if file.endswith('.txt'):
         data=openfile(file)
     else:
         data= pd.read_csv(file) 
     
     
+    
+   
+
+    if cC !=0:
+        print(cC)
+        minC = cC-cC*cpercent
+        maxC = cC+cC*cpercent
+        mask= (data['c']>=minC) & (data['c']<=maxC)
+        data = data[mask]
+
     C=np.array(data['c'])
     uniC=np.unique(C)
-
-    
     for c in uniC:
         curdata=data[C[:]==c]
         
@@ -191,14 +206,14 @@ def stats_C(file,warnL,bigL,verbose=True):
         
             #if ci < .271:
                 #continue
-            if count < warnL:
+            if count < lowL:
                 Lstr+= f"{bcolors.FAIL}"
             elif count > bigL:
                 Lstr+= f"{bcolors.WARNING}"
 
             Lstr+= "%d=%d"%(li,count)
                 
-            if count < warnL or count > bigL:
+            if count < lowL or count > bigL:
                 Lstr+=f"{bcolors.ENDC}"
             Lstr+=", "
         printV(Lstr,verbose)
@@ -237,8 +252,9 @@ def combine(folder,E,W,LZ=None,min_realizations=0,verbose=True):
             if path.isfile(filepath):
                 try:
                     data=openfile(filepath)
-                except:
-                    printV("error "+str(name),verbose)
+                except BaseException as err:
+                    
+                    printV(str(name)+f" - unexpected {err=}, {type(err)=}",verbose)
                     continue
 
                 Lz=np.array(data['Lz'])

@@ -93,18 +93,6 @@ if __name__ == '__main__':
                 bounds = np.transpose(bounds)
                 return (bounds[0,:], bounds[1,:])      
 
-    plotRaw=True
-    if plotRaw:
-            fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
-            box = ax3.get_position()
-            box.x0 = box.x0 - 0.05
-            box.x1 = box.x1 - 0.05
-            ax3.set_position(box)
-    else:
-        fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
-    
-    timestart=timeend=0
-
     def timing(name='',verbose=True):
         global timestart,timeend
         if timestart == 0:
@@ -115,14 +103,14 @@ if __name__ == '__main__':
             if verbose:
                 print(name + ' took ' + str(tot) + 's')
             timestart=0
-        
-        
 
     def plotScalingFunc(T, L, args):
-        sz=6#Size of the scaling curve points
-        markerlist=(',', '+', '.', 'o', '*','v', '^', '<', '>', 's', '8', 'p')
+        sz=8#Size of the scaling curve points
+        #markerlist=('.', '+', 'o', '*','v', '^', '|', '>', 's', '4', 'p','x','d')
+        #colorlist=('tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan')
         
-        mkr = itertools.cycle(markerlist) 
+        clr = itertools.cycle(colorlist) 
+        #mkr = itertools.cycle(markerlist) 
 
         Tc = args[0]
         nu = args[1]
@@ -139,40 +127,53 @@ if __name__ == '__main__':
         chi_L_exp = chi * L ** (1 / nu)
         #ax1.scatter(chi_exp_L,Lambda)
         
+        uniT=np.unique(T)[::-1]
+        for ti in uniT:
+            # pb=np.percentile(T,25)
+            # pp=np.percentile(T,50)
+            # po=np.percentile(T,75)
+            # pr=np.percentile(T,100)
+            cle=chi_exp_L[T==ti]
+            lam=Lambda[T==ti]
+            # co=''
 
-        for li in L:
-            pb=np.percentile(L,25)
-            pp=np.percentile(L,50)
-            po=np.percentile(L,75)
-            pr=np.percentile(L,100)
-            cle=chi_exp_L[L==li]
-            lam=Lambda[L==li]
-            co=''
 
-
-            if li < pb:
-                co='black'
-            elif li < pp:
-                co='purple'
-            elif li < po:
-                co='orange'
-            else:
-                co='red'
+            # if ti < pb:
+            #     co='black'
+            # elif ti < pp:
+            #     co='purple'
+            # elif ti < po:
+            #     co='orange'
+            # else:
+            #     co='red'
 
             #@TODO remove if you want the scaling curve colorized based on L vals
             #co='black'
 
-            ax1.scatter(cle, lam,marker=next(mkr),s=sz,c=co)
+            ax1.scatter(cle, lam,marker='o',s=sz,c=next(clr),edgecolor='black',linewidth=.2)#marker=next(mkr)
         
         # cleAbove=chi_exp_L[L>24]
         # cleBelow=chi_exp_L[L<=24]
         # lAbove=Lambda[L>24]
         # lBelow=Lambda[L<=24]
+        miny=np.min(Lambda)
+        maxy=np.max(Lambda)
+        ylen=maxy-miny
+        numticks=10
+    
+        ax1.set_yticks(np.arange(miny,maxy,ylen/numticks))
+
+        ax1.get_yaxis().get_major_formatter().labelOnlyBase = False
 
         #ax2.scatter(chi_L_exp, Lambda)
         ax1.set_ylabel(r'$\Lambda$', fontsize=fs)
         # ax1.set_ylabel(r'$g$', fontsize=fs)
         ax1.set_xlabel(r'$|\chi|^\nu*L$', fontsize=fs)
+
+        #if paperPlot:
+        
+
+
         ax1.set_xscale('log')
         #ax2.set_xlabel(r'$\chi L^{1/\nu}$', fontsize=fs)
         #ax2.set_xscale('linear')
@@ -185,6 +186,7 @@ if __name__ == '__main__':
         legendskip=2#if this is 2 skip every 3rd c value in the legend
             # Plot raw data
         Lrange = Lrange = np.unique(L)
+        clr = itertools.cycle(colorlist)
         for T in np.unique(Tvar)[::-1]:
             toPlotX = []
             toPlotY = []
@@ -214,7 +216,7 @@ if __name__ == '__main__':
                 legendlimiter = 0
 
 
-            ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl, ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=0)
+            ax3.errorbar(npX, npY,  fmt='o-', yerr=npYerror, label=lbl, c=next(clr), ecolor='k', capthick=2, markersize=0, barsabove=True, capsize=0)
             #ax3.semilogy(npX, npY, 'o-', label=lbl+str(round(T,2)))
 
         ax3.set_xlabel('L', fontsize=fs)
@@ -263,7 +265,7 @@ if __name__ == '__main__':
         data=d[d['L']>=minL]
 
         uniL=np.unique(data['L'])
-        lenL=len(uniL)
+        lenL=maxL-minL+1#len(uniL)
 
         print('len l: ' + str(lenL))
         uniC=np.unique(data['c'])
@@ -283,6 +285,10 @@ if __name__ == '__main__':
         return data
 
     def compressLambda(Lambda_in, L_in, c_in, sigma_in):
+        # Eliminates multiple Lambdas per (c,L) pair via average (weighted by std dev) and propagates uncertainty through sigma
+
+
+
         #input: Lambda, L, c, sigma data. May be multiple Lambdas per (c,L)
         #output: for each (c,L), weighted average and std dev
         c_unique = np.unique(c_in)
@@ -290,13 +296,18 @@ if __name__ == '__main__':
 
         cL_pairs = [[c,L] for c in c_unique for L in L_unique]
         Lambda_out = np.zeros(len(cL_pairs))
+
         L_out = np.zeros(len(cL_pairs))
         c_out = np.zeros(len(cL_pairs))
+
         Lambda_out_sigma = np.zeros(len(cL_pairs))
+
         for i, (c,L) in enumerate(cL_pairs):
             cL_ind = np.where((c_in==c) & (L_in==L))[0] #indices of matching c,L pair in Lambda
+
             matchingLambdas = [Lambda_in[j] for j in cL_ind]
             matchingSigmas = [sigma_in[j] for j in cL_ind]
+
             if len(matchingLambdas)>0 and len(matchingSigmas)>0:
                 # Final average is weighted by std devs
                 Lambda_out[i] = np.average(matchingLambdas, weights=1/np.square(matchingSigmas))
@@ -369,8 +380,8 @@ if __name__ == '__main__':
                     #timing()
                     
                     print('Bootstrapping {}% Tc: {}, nu: {} from island {}'.format(percent,
-                                                                        round(solution[0], 3),
-                                                                        round(solution[1], 3), ind))
+                                                                        round(solution[0], 2),
+                                                                        round(solution[1], 2), ind))
                     
                     #finally, remove the island from the array so its not counted twice (or three times, ...)
                     del islands[ind]
@@ -379,7 +390,7 @@ if __name__ == '__main__':
         _ = [isl.wait() for isl in islands]
         return solutions,Tcrange,Nurange
 
-    def cullAndClenseData(data,minL,maxL,cc,window_center,window_offset,window_width,cwidth,closewidth):
+    def cullAndClenseData(data,minL,maxL,cc,window_center,window_offset,window_width,cwidth,closewidth,excludeCs=[]):
 
         pre=len(np.unique(data[:,0]))
         #omit L less than minL to control finite size effects
@@ -399,6 +410,14 @@ if __name__ == '__main__':
         if post != pre:
             print(f'Cut {pre - post} values from window bounds')
 
+        
+        pre=len(np.unique(data[:,2]))
+        for exc in excludeCs:
+            data = data[data[:,2]!=exc]
+        post=len(np.unique(data[:,2]))
+
+        if post != pre:
+            print(f'Cut {pre - post} values from excluded c\'s')
 
         if cc!=0:
             minC=cc-cwidth*cc#.2935#
@@ -468,10 +487,15 @@ if __name__ == '__main__':
 
 
 #initializations
+
     now = datetime.now()
     startt=time.time()
     np.seterr(all='raise')
     scriptdir=os.getcwd() #os.path.dirname(__file__) 
+    timestart=timeend=0
+
+    colorlist=('brown','red','tomato', 'orangered','darkorange','orange','gold','greenyellow','green','springgreen','turquoise','teal','dodgerblue','midnightblue','blue','indigo','purple','magenta','pink')
+
     
     print(len(sys.argv))
 
@@ -488,23 +512,27 @@ if __name__ == '__main__':
         numCPUs = int(sys.argv[7])
         datadir= scriptdir+'/'
     else:
-        datafile='E2W10Lz100K.csv'
+        E=2
+        W=10
+        filestart='E'+str(E)+'W'+str(W)
 
-        minL = 16
+        datafile=filestart+'Lz100K.csv'
 
-        maxL=30
+        minL = 17
+
+        maxL= 28
 
         maxL_lower= maxL
         maxL_upper= maxL
 
 
         #E0CC=.29
-        E2CC=.29
+        E2CC=.29#.29
 
         #IF THIS IS 0 THEN WE WILL DO A CRITC CHECK
-        critC=0
+        critC=0#.2939
 
-        cwidth=.11#use C values within 11% of the critical C
+        cwidth=.1#use C values within 11% of the critical C
         closewidth=0#.004#drop c values within .4% of critical C
 
         
@@ -512,9 +540,10 @@ if __name__ == '__main__':
         #maxC=maxCEo=E0CC+cwidth*E0CC
         
         
+        
         # number of resamples
-        numCritCheck=2
-        resamplesize = 12
+        numCritCheck=3
+        resamplesize = 5
 
 
         numCPUs = 2 # number of processors to use
@@ -537,6 +566,8 @@ if __name__ == '__main__':
 
     crit_bound_lower, crit_bound_upper = 0.01, .99  # critical value bounds
 
+    excludeCs=[]#[.2948]
+
     #crit_bound_lower, crit_bound_upper = min(c), max(c) # critical value bounds
     nu_bound_lower, nu_bound_upper = 0.1, 3  # nu bounds
     y_bound_lower, y_bound_upper = -100.0, -0.1  # y bounds
@@ -545,13 +576,23 @@ if __name__ == '__main__':
     displayPlots=True
     plotRaw=True
 
+    paperPlot=True#if we want to make a plot worth of paper
+
     # orders of expansion
     n_R = 3#3
-    n_I = 1
-    m_R = 2#2
-    m_I = 1
+    n_I = 1#1
+    m_R = 3#2
+    m_I = 1#1
 
 
+    if not paperPlot:
+        fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+        box = ax3.get_position()
+        box.x0 = box.x0 - 0.05
+        box.x1 = box.x1 - 0.05
+        ax3.set_position(box)
+    else:
+        fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
 
     lrange=np.arange(maxL_lower,maxL_upper)
     if maxL_upper == maxL_lower:
@@ -610,8 +651,11 @@ if __name__ == '__main__':
                 curclosewidth = closewidth
                 ranOnce = True
 
-            Lambda, L, c, W, sigma, g = cullAndClenseData(data,minL,maxL,critC,window_center,window_offset,window_width,cwidth,curclosewidth)
+            Lambda, L, c, W, sigma, g = cullAndClenseData(data,minL,maxL,critC,window_center,window_offset,window_width,cwidth,curclosewidth,excludeCs)
 
+            if c.size == 0:
+                print('Culled all data, no values to run scaling with')
+                quit()
 
             # set the driving parameter
             Tvar = c
@@ -629,7 +673,7 @@ if __name__ == '__main__':
             
 
             solutions,Tcrange, Nurange = runFssAnalysis(numRun,bL,bTvar,bLambda,verbose)
-            critC= round(np.median(Tcrange),3)
+            critC= np.median(Tcrange)#round(np.median(Tcrange),3)
             print('Found Cc of ' + str(critC))
             
 
@@ -665,8 +709,8 @@ if __name__ == '__main__':
         solution = np.median(solutions, axis=0)
         print("Solution"+str(solution))
 
-
-        print('n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I))
+        expansionParamStr='n_R, n_I, m_R, m_I = {}, {}, {}, {}'.format(n_R, n_I, m_R, m_I)
+        print(expansionParamStr)
 
 
         #plt.figure()
@@ -677,7 +721,7 @@ if __name__ == '__main__':
 
         plotScalingFunc(Tvar, L, solution)
 
-        if plotRaw:
+        if not paperPlot:
            plotRawData(Tvar,L,solution)
         
 
@@ -694,9 +738,9 @@ if __name__ == '__main__':
         ostr=str(float(window_offset)).split('.')[1]
         wstr=str(float(window_width)).split('.')[1]
         if nuval > 1:
-            nustr=str(round(nuval,3)).replace('.','_')
+            nustr=str(round(nuval,2)).replace('.','_')
         else:
-            nustr=str(round(nuval,3)).split('.')[1]
+            nustr=str(round(nuval,2)).split('.')[1]
 
         fname='L_%s-%s--nu_%s-r%i' % (str(int(minL)),str(int(maxL)),nustr,resamplesize)
         
@@ -706,17 +750,21 @@ if __name__ == '__main__':
             cc='--'
         title= datafile.removesuffix('.csv')
 
-        
+        dcmplace=3#@TODO change to 2 for final
         #title = title+" %s\n\nCc: %s - nu: %f" % (cc, nuval)
-        title = title + '\nCc: {} [{}, {}]'.format(round(Tcfinal,3), round(TcCI[0], 3), round(TcCI[1], 3)) + '\nnu: {} [{}, {}]'.format(round(Nufinal,3), round(nu_1CI[0], 3), round(nu_1CI[1], 3))
+        title = title + '  ' + expansionParamStr + '\nCc: {} [{}, {}]'.format(round(Tcfinal,dcmplace), round(TcCI[0], dcmplace), round(TcCI[1], dcmplace)) + '\nnu: {} [{}, {}]'.format(round(Nufinal,dcmplace), round(nu_1CI[0], dcmplace), round(nu_1CI[1], dcmplace))
     
+        plot_name=fname +'-'+ pdf_name_identifier+'.pdf'
+        run_file_name=cfg.runfilename(plot_name)
+
         if window_offset != 0.0 or window_width != 1.0:
             title = title+ " - offset: %.2f - width: %.2f" % ( window_offset,window_width)
 
-        fig1.suptitle(title)
-        plot_name=fname +'-'+ pdf_name_identifier+'.pdf'
-        run_file_name=cfg.runfilename(plot_name)
-        fig1.savefig(run_file_name)
+        
+        if not paperPlot:
+            fig1.suptitle(title)
+           
+            fig1.savefig(run_file_name)
 
 
 

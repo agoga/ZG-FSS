@@ -12,8 +12,8 @@ from numpy import linalg as la
 import multiprocessing as mp
 import os
 from numba import jit
-
-@jit(nopython=True)
+begin=time.time()
+@jit(nopython=True,cache=True)
 def custom_circulant(array):
     L=len(array)
     ret=np.zeros((L,L))
@@ -25,7 +25,7 @@ def custom_circulant(array):
             ret[i][j]=tmp[j]
     return ret
 
-@jit(nopython=True)
+@jit(nopython=True,cache=True)
 def custom_diag(array):#,dtt=None):
 	L = len(array)
 
@@ -46,7 +46,7 @@ def save(par, return_value, avg, name, time):
 	line = str(now)+" "+str(par)+" "+str(return_value)+" "+str(avg)+" "+str(time)+"s\n"
 	f.write(line)
 
-@jit(nopython=True)
+@jit(nopython=True,cache=True)
 def Create_Transfer_Matrix(coupling_matrix_down, W, t_low, c, L, E, dim):
 	# P(t)= c*delta(t-t_h) + (1-c)*delta(t-t_l)
 	# fraction=c in Z group
@@ -272,3 +272,7 @@ for x in range(num_meas):
 	B = doCalc(*params)
 	end = time.time()
 	save(params,B,num_meas, name, end-start)
+
+final = time.time()
+tottime=(final-begin)/3600
+print('This run took ' + str(tottime) + ' hours')
