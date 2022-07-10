@@ -10,9 +10,17 @@ import numpy as np
 import os
 import config as cfg
 import logging as log
+import pandas as pd
+import sys
+import os.path
+
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 #fmt="%(funcName)s():%(lineno)i: %(message)s %(levelname)s"
 #log.basicConfig(level=args.log_level, format=fmt)
 show=False
+scriptdir=os.getcwd()
+datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
 
 def showplt(plt, show):
     if show:
@@ -74,137 +82,148 @@ def checkfit(xdata, ydata):
 
 raw_data = []
 
-# region
+def hide_comments():
+    # region
 
-# f2=open('means_M_W10,c_varied.txt','r')
-# lines=f2.readlines()
-# i=0
-# j=0
-# for line in lines:
-#    if i%2==1:
-#        raw_data.append([])
-#        new_line=line.replace('[','')
-#        newer_line=new_line.replace(']','')
-#        split_line=newer_line.split(',')
-#        for num in split_line:
-#            raw_data[j].append(float(num))
-#        j+=1
-#    i+=1
-#
-#
-#
-# M_Array=[4,6,8,10,12,14]
-# fraction_list=np.linspace(0,1,20)
-
-
-# outputfile='offdiag_t30_full.txt'
-# # outputfile='DD.txt'
-
-# output=openfile(outputfile)
+    # f2=open('means_M_W10,c_varied.txt','r')
+    # lines=f2.readlines()
+    # i=0
+    # j=0
+    # for line in lines:
+    #    if i%2==1:
+    #        raw_data.append([])
+    #        new_line=line.replace('[','')
+    #        newer_line=new_line.replace(']','')
+    #        split_line=newer_line.split(',')
+    #        for num in split_line:
+    #            raw_data[j].append(float(num))
+    #        j+=1
+    #    i+=1
+    #
+    #
+    #
+    # M_Array=[4,6,8,10,12,14]
+    # fraction_list=np.linspace(0,1,20)
 
 
-# y_data=[]
-# L_list=[]
-# c_list=[]
-# W_list=[]
-# for sim in output:
-#     L=sim[0]
-#     c=sim[2]
-#     W=sim[1]
-#     if L not in L_list:
-#         L_list.append(L)
-#     if c not in c_list:
-#         c_list.append(c)
-#     if W not in W_list:
-#         W_list.append(W)
-# L_list.sort()
-# c_list.sort()
-# W_list.sort()
+    # outputfile='offdiag_t30_full.txt'
+    # # outputfile='DD.txt'
 
-# #This snippet will show all of the lengths' loc lengths as a function of c
-# i=0
-
-# g_data=[]
-# for L in L_list:
-#     y_data.append([])
-#     g_data.append([])
-#     for c in c_list:
-#         for sim in output:
-#             if sim[0]==L and sim[2]==c:
-#                 Lambda=1/sim[3]
-#                 T=np.exp(-2/(Lambda/sim[0]))
-# #                y_data[i].append(1/(sim[0]*sim[3]))
-#                 y_data[i].append(Lambda/sim[0])
-#                 # g_data[i].append((4/np.cosh((2*sim[0]/Lambda))+1))
-#                 g_data[i].append(1/np.pi*T/(1-T))
-#     i+=1
-
-# This snippet will show all of the lengths' loc lengths as a function of W
-# i=0
-
-# g_data=[]
-# for L in L_list:
-#     y_data.append([])
-#     g_data.append([])
-#     for W in W_list:
-#         for sim in output:
-#             if sim[0]==L and sim[1]==W:
-#                 Lambda=1/sim[3]
-# #                y_data[i].append(1/(sim[0]*sim[3]))
-#                 y_data[i].append(Lambda/sim[0])
-#                 g_data[i].append((4/np.cosh((2*sim[0]/Lambda))+1))
-#     i+=1
+    # output=openfile(outputfile)
 
 
-# This snippet will show all of the c's loc lengths as a function of L
-# i=0
-# g_data=[]
-# for c in c_list:
-#     y_data.append([])
-#     g_data.append([])
-#     for L in L_list:
-#         for sim in output:
-#             if sim[0]==L and sim[2]==c:
-#                 Lambda=2*L/sim[3]
-#                 y_data[i].append(1/(sim[0]*sim[3]))
-#                 g_data[i].append(4/np.cosh((2*sim[0]/Lambda))+1)
-#     i+=1
+    # y_data=[]
+    # L_list=[]
+    # c_list=[]
+    # W_list=[]
+    # for sim in output:
+    #     L=sim[0]
+    #     c=sim[2]
+    #     W=sim[1]
+    #     if L not in L_list:
+    #         L_list.append(L)
+    #     if c not in c_list:
+    #         c_list.append(c)
+    #     if W not in W_list:
+    #         W_list.append(W)
+    # L_list.sort()
+    # c_list.sort()
+    # W_list.sort()
+
+    # #This snippet will show all of the lengths' loc lengths as a function of c
+    # i=0
+
+    # g_data=[]
+    # for L in L_list:
+    #     y_data.append([])
+    #     g_data.append([])
+    #     for c in c_list:
+    #         for sim in output:
+    #             if sim[0]==L and sim[2]==c:
+    #                 Lambda=1/sim[3]
+    #                 T=np.exp(-2/(Lambda/sim[0]))
+    # #                y_data[i].append(1/(sim[0]*sim[3]))
+    #                 y_data[i].append(Lambda/sim[0])
+    #                 # g_data[i].append((4/np.cosh((2*sim[0]/Lambda))+1))
+    #                 g_data[i].append(1/np.pi*T/(1-T))
+    #     i+=1
+
+    # This snippet will show all of the lengths' loc lengths as a function of W
+    # i=0
+
+    # g_data=[]
+    # for L in L_list:
+    #     y_data.append([])
+    #     g_data.append([])
+    #     for W in W_list:
+    #         for sim in output:
+    #             if sim[0]==L and sim[1]==W:
+    #                 Lambda=1/sim[3]
+    # #                y_data[i].append(1/(sim[0]*sim[3]))
+    #                 y_data[i].append(Lambda/sim[0])
+    #                 g_data[i].append((4/np.cosh((2*sim[0]/Lambda))+1))
+    #     i+=1
 
 
-# plt.figure(figsize=(10,7))
-# for i in range(len(y_data)):
-#     plt.plot(c_list,y_data[i], label = 'L= ' +str(L_list[i]),marker='^')
-# plt.legend(loc=2)
-# plt.ylabel(r'$\Lambda$')
-# #plt.ylabel('g')
-# plt.xlabel('c')
-# plt.yscale('log')
-# plt.xscale('log')
+    # This snippet will show all of the c's loc lengths as a function of L
+    # i=0
+    # g_data=[]
+    # for c in c_list:
+    #     y_data.append([])
+    #     g_data.append([])
+    #     for L in L_list:
+    #         for sim in output:
+    #             if sim[0]==L and sim[2]==c:
+    #                 Lambda=2*L/sim[3]
+    #                 y_data[i].append(1/(sim[0]*sim[3]))
+    #                 g_data[i].append(4/np.cosh((2*sim[0]/Lambda))+1)
+    #     i+=1
 
-# plt.show()
+
+    # plt.figure(figsize=(10,7))
+    # for i in range(len(y_data)):
+    #     plt.plot(c_list,y_data[i], label = 'L= ' +str(L_list[i]),marker='^')
+    # plt.legend(loc=2)
+    # plt.ylabel(r'$\Lambda$')
+    # #plt.ylabel('g')
+    # plt.xlabel('c')
+    # plt.yscale('log')
+    # plt.xscale('log')
+
+    # plt.show()
 
 
-# x_data=W_list
+    # x_data=W_list
 
-# This plot should identify WHERE the transition is, we should see lines crossing.
-# for i in range(len(raw_data)):
-#    y_data.append([])
-#    for j in range(len(raw_data[i])):
-#        y_data[i].append(raw_data[i][j]/L_list[i])
-#    plt.plot(x_data,y_data[i],label='M= ' + str(L_list[i]))
-# plt.xlabel('c')
-# plt.ylabel(r'$\lambda_M$/M')
-# plt.legend(loc=2)
-# plt.show()
-# endregion
+    # This plot should identify WHERE the transition is, we should see lines crossing.
+    # for i in range(len(raw_data)):
+    #    y_data.append([])
+    #    for j in range(len(raw_data[i])):
+    #        y_data[i].append(raw_data[i][j]/L_list[i])
+    #    plt.plot(x_data,y_data[i],label='M= ' + str(L_list[i]))
+    # plt.xlabel('c')
+    # plt.ylabel(r'$\lambda_M$/M')
+    # plt.legend(loc=2)
+    # plt.show()
+    # endregion
+    return 2
 
 
 def compute_c_nu(data):
     log.info("%(funcName)s")
 
+    print(data)
     datafile = cfg.datafilename(data)
-    #mis-named previously, should be data @TODO fix
-    output = openfile(datafile)
+    # #mis-named previously, should be data @TODO fix
+    # output = openfile(datafile)
+
+    #input = np.array(openfile(tmpdir+datafile))
+    df = pd.read_csv(datafile,engine='python')#,delimiter='\t')#,encoding='utf8',sep=',',
+    output=np.transpose(np.array([df['L'],df['W'],df['c'],df['lyap']]))
+
+    #datafile = cfg.datafilename('offdiagE6W16.txt')
+    #output = openfile(datafile)
+
     y_data = []
     L_list = []
     c_list = []
@@ -213,7 +232,7 @@ def compute_c_nu(data):
         L = sim[0]
         c = sim[2]
         W = sim[1]
-        if L not in L_list:
+        if L < 12 and L not in L_list:
             L_list.append(L)
         if c not in c_list:
             c_list.append(c)
@@ -228,6 +247,8 @@ def compute_c_nu(data):
     cmin = min(c_list)
 
     print(c_list)
+    print(L_list)
+    print(W_list)
 
     x_data = c_list
 
@@ -235,7 +256,7 @@ def compute_c_nu(data):
 
     g_data = []
     for L in L_list:
-        six_hit = False
+        #six_hit = False
         y_data.append([])
         g_data.append([])
         # x_data.append([])
@@ -257,7 +278,7 @@ def compute_c_nu(data):
         i += 1
 
     #@TODO ranges
-    nu_range = np.linspace(1,1.8, 100)
+    nu_range = np.linspace(.8,1.8, 100)
     c_range = np.linspace(cmin, cmax, 50)
 
     minerror = 10000000
@@ -292,6 +313,8 @@ def compute_c_nu(data):
     datacsv=[setname, round(best_c,2),round(best_nu,2)]
     cfg.savecsv(datacsv)
     
+    print(x_data)
+    print(y_data)
     for i in range(len(y_data)):
         plt.plot(x_data, y_data[i], label='M= ' + str(L_list[i]))
     plt.xlabel('c')
@@ -654,7 +677,7 @@ def compute_c_s():
     # plt.xscale('log')
     # plt.ylabel(r'$\Lambda/L$')
 
-compute_c_nu('offdiagE6W16.txt')
+compute_c_nu('E2W10Lz100K.csv')
 quit()
 
 
