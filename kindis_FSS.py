@@ -160,26 +160,28 @@ if __name__ == '__main__':
         maxy=np.max(Lambda)
         ylen=maxy-miny
         numticks=10
-    
-        ax1.set_yticks(np.arange(miny,maxy,ylen/numticks))
+        ticks=np.arange(miny,maxy,ylen/numticks)
+        print(ticks)
 
-        ax1.get_yaxis().get_major_formatter().labelOnlyBase = False
+        ax1.set_xscale('log')
+        ax1.set_yscale('linear')
+
+        #ax1.get_yaxis().get_major_formatter().labelOnlyBase = False
+        ax1.set_yticks(ticks)
+        #ax1.yaxis.set_ticks(np.arange(miny,maxy,ylen/numticks))
 
         #ax2.scatter(chi_L_exp, Lambda)
         ax1.set_ylabel(r'$\Lambda$', fontsize=fs)
         # ax1.set_ylabel(r'$g$', fontsize=fs)
         ax1.set_xlabel(r'$|\chi|^\nu*L$', fontsize=fs)
 
-        #if paperPlot:
+
         
-
-
-        ax1.set_xscale('log')
         #ax2.set_xlabel(r'$\chi L^{1/\nu}$', fontsize=fs)
         #ax2.set_xscale('linear')
 
         #ax2.set_yscale('log')
-        ax1.set_yscale('log')
+        
         
     def plotRawData(Tvar,L,args):
         legendlimiter=0
@@ -225,6 +227,8 @@ if __name__ == '__main__':
         Lrange = np.arange(min(Lrange),max(Lrange)+1,step=2,dtype=int)
         ax3.set_xticks(Lrange)
         ax3.set_xticklabels(list(map(str, Lrange)))
+        #ax3.set_yticks([],[])
+        ax3.tick_params('y',labelleft=False)
         #ax3.xaxis.set_minor_formatter(mticker.ScalarFormatter())
         #plt.ticklabel_format(axis='x',style='plain')
         #fig2, ax4 = plt.subplots(nrows=1, ncols=1, figsize=(8, 5), sharey=True)
@@ -518,19 +522,19 @@ if __name__ == '__main__':
 
         datafile=filestart+'Lz100K.csv'
 
-        minL = 17
+        minL = 10
 
-        maxL= 28
+        maxL= 24
 
         maxL_lower= maxL
         maxL_upper= maxL
 
 
         #E0CC=.29
-        E2CC=.29#.29
+        #E2CC=.29
 
         #IF THIS IS 0 THEN WE WILL DO A CRITC CHECK
-        critC=0#.2939
+        critC=00.294#0.3#.2948
 
         cwidth=.1#use C values within 11% of the critical C
         closewidth=0#.004#drop c values within .4% of critical C
@@ -542,13 +546,13 @@ if __name__ == '__main__':
         
         
         # number of resamples
-        numCritCheck=3
-        resamplesize = 5
+        numCritCheck=6
+        resamplesize = 20
 
 
         numCPUs = 2 # number of processors to use
 
-        datadir= os.path.join(scriptdir, 'data\\')#directory to search for data 
+        datadir= os.path.join(scriptdir, 'data\\')#directory to search for data l
 
     verbose = True
     fs = 18 #font size 
@@ -561,6 +565,8 @@ if __name__ == '__main__':
     window_width = 1.0 #width of window
     window_offset = 0.0  #  distance from window center to near edge of window
     window_center = 0.63
+
+    
 
     cutoffdate = datetime.now()#datetime(2022,4,30)
 
@@ -576,23 +582,23 @@ if __name__ == '__main__':
     displayPlots=True
     plotRaw=True
 
-    paperPlot=True#if we want to make a plot worth of paper
+    paperPlot=False#if we want to make a plot worth of paper
 
     # orders of expansion
     n_R = 3#3
     n_I = 1#1
-    m_R = 3#2
+    m_R = 2#2
     m_I = 1#1
 
 
     if not paperPlot:
-        fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=True)
+        fig1, (ax1, ax3) = plt.subplots(nrows=1, ncols=2, figsize=(11, 6), sharey=False)
         box = ax3.get_position()
         box.x0 = box.x0 - 0.05
         box.x1 = box.x1 - 0.05
         ax3.set_position(box)
     else:
-        fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(11, 6), sharey=True)
+        fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
 
     lrange=np.arange(maxL_lower,maxL_upper)
     if maxL_upper == maxL_lower:

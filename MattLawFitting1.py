@@ -1,9 +1,13 @@
 import numpy as np, scipy.optimize as so, csv, matplotlib.pyplot as plt
 import pandas as pd 
+import os
 
-filename='C:/Users/zackc/Documents/holemobilityvals.csv'
+scriptdir=os.getcwd() #os.path.dirname(__file__) 
+datadir= os.path.join(scriptdir, 'data\\')#static ..\data\
 
-file = pd.read_csv(filename, sep=',',header=1)
+filename='holemobilityvals.csv'
+
+file = pd.read_csv(datadir+filename, sep=',',header=1)
 data=file.to_numpy(dtype='float')
 
 T=data[:,0]
@@ -31,16 +35,32 @@ def hh(T,pre,t0):
     return 1/rho
 
 def f(T,sio,smo,E,val,t0,a,n,s):
+    if s is None:
+        s=1
+    if n is None:
+        n=3
     kbev=1000*8.617333262*10**-5 #meV/K
     si=sio*np.exp(-E/(kbev*T))
     sm=smo/(1+a*(T/t0)**n)
     sigma=sm**(1-s)*(si**s+val*sm**s)
     return sigma
 
-vals1,errs1=so.curve_fit(f,T,grains[:,0],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
-vals2,errs2=so.curve_fit(f,T,grains[:,1],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
-vals3,errs3=so.curve_fit(f,T,grains[:,2],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
-vals4,errs4=so.curve_fit(f,T,grains[:,3],bounds=((0,0,0,0,0,0,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,np.inf,3.5,2)))
+nmax=np.inf
+smin=None
+smax=None
+
+
+vals1,errs1=so.curve_fit(f,T,grains[:,0],bounds=    ((0,0,0,0,0,smin,1,0.5),
+                                                    (np.inf,np.inf,np.inf,np.inf,np.inf,smax,nmax,2)))
+vals2,errs2=so.curve_fit(f,T,grains[:,1],bounds=((0,0,0,0,0,smin,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,smax,nmax,2)))
+vals3,errs3=so.curve_fit(f,T,grains[:,2],bounds=((0,0,0,0,0,smin,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,smax,nmax,2)))
+vals4,errs4=so.curve_fit(f,T,grains[:,3],bounds=((0,0,0,0,0,smin,1,0.5),(np.inf,np.inf,np.inf,np.inf,np.inf,smax,nmax,2)))
+
+
+print(vals1)
+print(vals2)
+print(vals3)
+print(vals4)
 
 perr1 = np.sqrt(np.diag(errs1))
 perr2 = np.sqrt(np.diag(errs2))
@@ -82,3 +102,6 @@ plt.title('Fit with Gergely Notes',fontsize=24)
 plt.legend(loc='lower center',ncol=2)
 plt.ylabel(r'$\mu$',fontsize=fs)
 plt.xlabel(r'T (K)',fontsize=fs)
+
+plt.show()
+print('done')

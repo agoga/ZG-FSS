@@ -3,14 +3,14 @@
 #$ -cwd
 #$ -j y
 #$ -S /bin/bash
-#SBATCH -c 12
+#SBATCH -c 1
 #SBATCH --time=10-00:00:00
 #SBATCH --job-name="FSS_plot"
 #SBATCH -p high2
 
 
 
-CPUS=12
+CPUS=1
 MINL=10
 MAXL=24
 MINC=.20

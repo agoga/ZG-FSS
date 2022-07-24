@@ -1,4 +1,4 @@
-#NOT CURRENTLY WORKING - my attempt to create a toolbox to analyze data ON farm instead of bringing it local
+#NOT CURRENTLY WORKING - my attempt to create a toolbox to analyze data ON **farm** instead of bringing it local
 import os
 import argparse
 from pathlib import Path

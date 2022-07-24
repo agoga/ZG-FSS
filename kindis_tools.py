@@ -35,6 +35,7 @@ def printV(str,v=True):
         print(str)
 
 def openfile(filename):
+    '''open a text data file output by the localization code and put it into a dict '''
     f = open(filename, "r+")
     output = defaultdict(list)
     # output['L']=()
@@ -67,10 +68,25 @@ def openfile(filename):
             output['fname'].append(os.path.basename(filename))
     return output
 
+def est_critcc(W,tL=0.3,tH=1):
+    '''Estimate the critical c value based on W, t low, and t high'''
+    Wmit=16.53#maybe we need to change?
+
+    ret=(Wmit/W-1/tH)/(1/tL-1/tH)
+
+    return ret
 
 
+def crit_val_spacing(cc):
+    upperrange=np.round((10**(np.linspace(-2,-1.1,num=5))*cc+cc),3) #-2 to -1 goes 10% away to 1% away from cc
+    lowerrange=np.sort(np.round((-10**(np.linspace(-2,-1.1,num=5))*cc+cc),3)) #-2 to -1 goes 10% away to 1% away from cc
+
+    out=list(lowerrange) + [cc] + list(upperrange)
+    print(out)
+    return out
 
 def stats_L(file,warnc,bigc,cC=0,cpercent=0.1,verbose=True):
+    '''Provides the number of realizations for each point and organizes based on values of L.'''
     if file.endswith('.txt'):
         data=openfile(file)
     else:
@@ -164,30 +180,31 @@ def save_L_csv(file,out):
     pd.DataFrame(df).to_csv(datadir+out+'.csv',mode='w')
 
 
-def stats_C(file,lowL,bigL,cC=0,cpercent=0.1,verbose=True):
+def stats_C(file,lowL,bigL,minL,cC=0,cpercent=0.1,verbose=True):
+    '''Provides the number of realizations for each point and organizes based on values of c.'''
+
     if file.endswith('.txt'):
         data=openfile(file)
     else:
         data= pd.read_csv(file) 
     
-    
-    
-   
+
 
     if cC !=0:
-        print(cC)
         minC = cC-cC*cpercent
         maxC = cC+cC*cpercent
         mask= (data['c']>=minC) & (data['c']<=maxC)
         data = data[mask]
 
+    uniL=np.unique(np.array(data['L']))
+    uniL=uniL[uniL[:]>=minL]
     C=np.array(data['c'])
     uniC=np.unique(C)
     for c in uniC:
         curdata=data[C[:]==c]
         
         L=np.array(curdata['L'])
-        uniL=np.unique(L)
+        #uniL=np.unique(L)
 
         Lstr=''
         outstr=''
@@ -221,12 +238,10 @@ def stats_C(file,lowL,bigL,cC=0,cpercent=0.1,verbose=True):
 
 
 
-
-
 def combine(folder,E,W,LZ=None,min_realizations=0,verbose=True):
-    ##
-    ##Combines all data for specific parameters into a new csv
-    ##
+    '''Combines all data for specific parameters from old text out put of localization into a new csv.
+        Rewrites over the csv every time so you should include all the data files availible.
+    '''
 
     df=pd.DataFrame()
     minreal=min_realizations
@@ -271,7 +286,9 @@ def combine(folder,E,W,LZ=None,min_realizations=0,verbose=True):
                 if (LZ in uniLz or LZ is None) and (E in uniE) and (W in uniW):
                     #printV(str(uniLz) + " " +str(name)+ ' success',verbose)
                     printV("success " +str(name),verbose)
-                    df=df.append(pd.DataFrame.from_dict(data))
+                    newdf= pd.DataFrame.from_dict(data)
+                    df = pd.concat([df,newdf])
+                    #df=df.append(pd.DataFrame.from_dict(data))
                 else:
                     # print(LZ in uniLz or LZ is None)
                     # print(E in uniE)
